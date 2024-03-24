@@ -6,6 +6,8 @@
 #include "node_threadsafe_cow-inl.h"
 #include "simdutf.h"
 #include "util-inl.h"
+#include "node_perf.h"
+#include <cstdio>
 
 namespace node {
 namespace builtins {
@@ -462,6 +464,8 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
                  realm->builtin_module_require(),
                  realm->internal_binding_loader(),
                  realm->primordials()};
+
+
   } else {
     // This should be invoked with the other CompileAndCall() methods, as
     // we are unable to generate the arguments.
@@ -481,7 +485,8 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
                                                 Realm* optional_realm) {
   // Arguments must match the parameters specified in
   // BuiltinLoader::LookupAndCompile().
-  MaybeLocal<Function> maybe_fn = LookupAndCompile(context, id, optional_realm);
+  MaybeLocal<Function> maybe_fn = LookupAndCompile(context, id, optional_realm); // <0.1ms
+
   Local<Function> fn;
   if (!maybe_fn.ToLocal(&fn)) {
     return MaybeLocal<Value>();

@@ -60,6 +60,7 @@ class UnionBytes {
   explicit UnionBytes(StaticExternalTwoByteResource* two_byte_resource)
       : one_byte_resource_(nullptr), two_byte_resource_(two_byte_resource) {}
 
+  UnionBytes() = default;
   UnionBytes(const UnionBytes&) = default;
   UnionBytes& operator=(const UnionBytes&) = default;
   UnionBytes(UnionBytes&&) = default;

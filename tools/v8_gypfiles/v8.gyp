@@ -1185,7 +1185,7 @@
       ],
 
       'conditions': [
-        ['is_component_build', {
+        ['component=="shared_library"', {
           'defines': ["BUILDING_V8_BASE_SHARED"],
         }],
         ['is_posix or is_fuchsia', {

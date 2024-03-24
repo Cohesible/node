@@ -128,6 +128,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <thread>
 
 namespace node {
 
@@ -318,6 +319,8 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
   // Only snapshot builder or embedder applications set the
   // callback.
   if (cb != nullptr) {
+      printf("has cb\n");
+
     EscapableHandleScope scope(env->isolate());
 
     Local<Value> result;
@@ -368,7 +371,9 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
   // move the pre-execution part into a different file that can be
   // reused when dealing with user-defined main functions.
   if (!env->snapshot_deserialize_main().IsEmpty()) {
-    return env->RunSnapshotDeserializeMain();
+    auto x = env->RunSnapshotDeserializeMain();
+
+    return x;
   }
 
   if (env->worker_context() != nullptr) {
@@ -394,7 +399,9 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
 
   // -e/--eval without -i/--interactive
   if (env->options()->has_eval_string && !env->options()->force_repl) {
-    return StartExecution(env, "internal/main/eval_string");
+      auto eval_res = StartExecution(env, "internal/main/eval_string");
+
+    return eval_res;
   }
 
   if (env->options()->syntax_check_only) {
@@ -417,7 +424,11 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     return StartExecution(env, "internal/main/repl");
   }
 
-  return StartExecution(env, "internal/main/eval_stdin");
+      double _t = uv_hrtime();
+      auto eval_res = StartExecution(env, "internal/main/eval_stdin");
+            printf("eval result -> %f\n", (uv_hrtime() - _t) / 1e6);
+
+  return eval_res;
 }
 
 #ifdef __POSIX__
@@ -871,6 +882,8 @@ static ExitCode InitializeNodeWithArgsInternal(
 
   // Register built-in bindings
   binding::RegisterBuiltinBindings();
+  printf("register builtins -> %f\n", (uv_hrtime() - per_process::node_start_time) / 1e6);
+
 
   // Make inherited handles noninheritable.
   if (!(flags & ProcessInitializationFlags::kEnableStdioInheritance) &&
@@ -1025,64 +1038,12 @@ int InitializeNodeWithArgs(std::vector<std::string>* argv,
 }
 
 static std::unique_ptr<InitializationResultImpl>
-InitializeOncePerProcessInternal(const std::vector<std::string>& args,
+InitCrypto(const std::vector<std::string>& args,
                                  ProcessInitializationFlags::Flags flags =
                                      ProcessInitializationFlags::kNoFlags) {
-  auto result = std::make_unique<InitializationResultImpl>();
-  result->args_ = args;
+auto result = std::make_unique<InitializationResultImpl>();
+result->args_ = args;
 
-  if (!(flags & ProcessInitializationFlags::kNoParseGlobalDebugVariables)) {
-    // Initialized the enabled list for Debug() calls with system
-    // environment variables.
-    per_process::enabled_debug_list.Parse(per_process::system_environment);
-  }
-
-  PlatformInit(flags);
-
-  // This needs to run *before* V8::Initialize().
-  {
-    result->exit_code_ = InitializeNodeWithArgsInternal(
-        &result->args_, &result->exec_args_, &result->errors_, flags);
-    if (result->exit_code_enum() != ExitCode::kNoFailure) {
-      result->early_return_ = true;
-      return result;
-    }
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoUseLargePages) &&
-      (per_process::cli_options->use_largepages == "on" ||
-       per_process::cli_options->use_largepages == "silent")) {
-    int lp_result = node::MapStaticCodeToLargePages();
-    if (per_process::cli_options->use_largepages == "on" && lp_result != 0) {
-      result->errors_.emplace_back(node::LargePagesError(lp_result));
-    }
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoPrintHelpOrVersionOutput)) {
-    if (per_process::cli_options->print_version) {
-      printf("%s\n", NODE_VERSION);
-      result->exit_code_ = ExitCode::kNoFailure;
-      result->early_return_ = true;
-      return result;
-    }
-
-    if (per_process::cli_options->print_bash_completion) {
-      std::string completion = options_parser::GetBashCompletion();
-      printf("%s\n", completion.c_str());
-      result->exit_code_ = ExitCode::kNoFailure;
-      result->early_return_ = true;
-      return result;
-    }
-
-    if (per_process::cli_options->print_v8_help) {
-      V8::SetFlagsFromString("--help", static_cast<size_t>(6));
-      result->exit_code_ = ExitCode::kNoFailure;
-      result->early_return_ = true;
-      return result;
-    }
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoInitOpenSSL)) {
 #if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
     auto GetOpenSSLErrorString = []() -> std::string {
       std::string ret;
@@ -1190,6 +1151,83 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
         crypto::UseExtraCaCerts(extra_ca_certs);
     }
 #endif  // HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
+
+return result;
+}
+
+static std::unique_ptr<InitializationResultImpl>
+InitializeOncePerProcessInternal(const std::vector<std::string>& args,
+                                 ProcessInitializationFlags::Flags flags =
+                                     ProcessInitializationFlags::kNoFlags) {
+  auto result = std::make_unique<InitializationResultImpl>();
+  result->args_ = args;
+
+  if (!(flags & ProcessInitializationFlags::kNoParseGlobalDebugVariables)) {
+    // Initialized the enabled list for Debug() calls with system
+    // environment variables.
+    per_process::enabled_debug_list.Parse(per_process::system_environment);
+  }
+  double _t = uv_hrtime();
+
+  std::vector<std::thread*> threads;
+
+    threads.emplace_back(new std::thread(PlatformInit, flags));    
+
+  if (!(flags & ProcessInitializationFlags::kNoInitOpenSSL)) {
+    std::thread* task = new std::thread(InitCrypto, args, flags);
+    threads.emplace_back(task);    
+
+    // auto result = InitCrypto(args, flags);
+    // if (result->exit_code_enum() != ExitCode::kNoFailure) {
+    //   result->early_return_ = true;
+    //   return result;
+    // }
+  }
+
+ _t = uv_hrtime();
+  // This needs to run *before* V8::Initialize().
+  {
+    result->exit_code_ = InitializeNodeWithArgsInternal(
+        &result->args_, &result->exec_args_, &result->errors_, flags);
+    if (result->exit_code_enum() != ExitCode::kNoFailure) {
+      result->early_return_ = true;
+      return result;
+    }
+  }
+  printf("InitializeNodeWithArgsInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
+ _t = uv_hrtime();
+
+  if (!(flags & ProcessInitializationFlags::kNoUseLargePages) &&
+      (per_process::cli_options->use_largepages == "on" ||
+       per_process::cli_options->use_largepages == "silent")) {
+    int lp_result = node::MapStaticCodeToLargePages();
+    if (per_process::cli_options->use_largepages == "on" && lp_result != 0) {
+      result->errors_.emplace_back(node::LargePagesError(lp_result));
+    }
+  }
+
+  if (!(flags & ProcessInitializationFlags::kNoPrintHelpOrVersionOutput)) {
+    if (per_process::cli_options->print_version) {
+      printf("%s\n", NODE_VERSION);
+      result->exit_code_ = ExitCode::kNoFailure;
+      result->early_return_ = true;
+      return result;
+    }
+
+    if (per_process::cli_options->print_bash_completion) {
+      std::string completion = options_parser::GetBashCompletion();
+      printf("%s\n", completion.c_str());
+      result->exit_code_ = ExitCode::kNoFailure;
+      result->early_return_ = true;
+      return result;
+    }
+
+    if (per_process::cli_options->print_v8_help) {
+      V8::SetFlagsFromString("--help", static_cast<size_t>(6));
+      result->exit_code_ = ExitCode::kNoFailure;
+      result->early_return_ = true;
+      return result;
+    }
   }
 
   if (!(flags & ProcessInitializationFlags::kNoInitializeNodeV8Platform)) {
@@ -1202,6 +1240,9 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     V8::Initialize();
   }
 
+  printf("v8 init -> %f\n", (uv_hrtime() - _t) / 1e6);
+  _t = uv_hrtime();
+
   if (!(flags & ProcessInitializationFlags::kNoInitializeCppgc)) {
     v8::PageAllocator* allocator = nullptr;
     if (result->platform_ != nullptr) {
@@ -1210,8 +1251,16 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     cppgc::InitializeProcess(allocator);
   }
 
+  printf("cppgc init -> %f\n", (uv_hrtime() - _t) / 1e6);
+
   performance::performance_v8_start = PERFORMANCE_NOW();
   per_process::v8_initialized = true;
+
+  _t = uv_hrtime();
+  for (auto task : threads) {
+    task->join();
+    delete task;
+  }
 
   return result;
 }
@@ -1265,6 +1314,7 @@ ExitCode GenerateAndWriteSnapshotData(const SnapshotData** snapshot_data_ptr,
   SnapshotConfig snapshot_config;
   const std::string& config_path =
       per_process::cli_options->per_isolate->build_snapshot_config;
+
   // For snapshot config read from JSON, we fix up process.argv[1] using the
   // "builder" field.
   std::vector<std::string> args_maybe_patched;
@@ -1398,6 +1448,7 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
   }
 
   if (per_process::cli_options->node_snapshot) {
+      double _t = uv_hrtime();
     // If --snapshot-blob is not specified or if the SEA contains no snapshot,
     // we are reading the embedded snapshot, but we will skip it if
     // --no-node-snapshot is specified.
@@ -1410,6 +1461,8 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
       // If we fail to read the embedded snapshot, treat it as if Node.js
       // was built without one.
       *snapshot_data_ptr = read_data;
+
+      printf("snapshot init -> %f\n", (uv_hrtime() - _t) / 1e6);
     }
   }
 
@@ -1421,6 +1474,7 @@ static ExitCode StartInternal(int argc, char** argv) {
 
   // Hack around with the argv pointer. Used for process.title = "blah".
   argv = uv_setup_args(argc, argv);
+      double _t = uv_hrtime();
 
   std::unique_ptr<InitializationResultImpl> result =
       InitializeOncePerProcessInternal(
@@ -1434,9 +1488,12 @@ static ExitCode StartInternal(int argc, char** argv) {
 
   DCHECK_EQ(result->exit_code_enum(), ExitCode::kNoFailure);
   const SnapshotData* snapshot_data = nullptr;
+  printf("InitializeOncePerProcessInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   auto cleanup_process = OnScopeLeave([&]() {
+    double _t = uv_hrtime();
     TearDownOncePerProcess();
+    printf("TearDownOncePerProcess -> %f\n", (uv_hrtime() - _t) / 1e6);
 
     if (snapshot_data != nullptr &&
         snapshot_data->data_ownership == SnapshotData::DataOwnership::kOwned) {
@@ -1464,6 +1521,7 @@ static ExitCode StartInternal(int argc, char** argv) {
               "Usage: node --build-snapshot /path/to/entry.js\n");
       return ExitCode::kInvalidCommandLineArgument;
     }
+
     return GenerateAndWriteSnapshotData(&snapshot_data, result.get());
   }
 
@@ -1471,15 +1529,30 @@ static ExitCode StartInternal(int argc, char** argv) {
   if (!LoadSnapshotData(&snapshot_data)) {
     return ExitCode::kStartupSnapshotFailure;
   }
+
+  _t = uv_hrtime();
+
   NodeMainInstance main_instance(snapshot_data,
                                  uv_default_loop(),
                                  per_process::v8_platform.Platform(),
                                  result->args(),
                                  result->exec_args());
-  return main_instance.Run();
+
+  printf("vm init -> %f\n", (uv_hrtime() - _t) / 1e6);
+  _t = uv_hrtime();
+  auto res = main_instance.Run();
+  printf("main_instance.Run(); -> %f\n", (uv_hrtime() - _t) / 1e6);
+
+  return res;
 }
 
 int Start(int argc, char** argv) {
+  auto args = std::vector<std::string>(argv, argv + argc);
+  if (args[1] == "--version") {
+    printf("aaa %s\n", NODE_VERSION);
+    return 0;
+  }
+
 #ifndef DISABLE_SINGLE_EXECUTABLE_APPLICATION
   std::tie(argc, argv) = sea::FixupArgsForSEA(argc, argv);
 #endif

@@ -12,6 +12,8 @@
 #include "node_sea.h"
 #include "node_snapshot_builder.h"
 #include "node_snapshotable.h"
+#include <cstdio>
+#include "node_perf.h"
 #include "node_v8_platform-inl.h"
 #include "util-inl.h"
 #if defined(LEAK_SANITIZER)
@@ -43,11 +45,15 @@ NodeMainInstance::NodeMainInstance(const SnapshotData* snapshot_data,
       isolate_data_(),
       isolate_params_(std::make_unique<Isolate::CreateParams>()),
       snapshot_data_(snapshot_data) {
+
+
   isolate_params_->array_buffer_allocator = array_buffer_allocator_.get();
+
 
   isolate_ =
       NewIsolate(isolate_params_.get(), event_loop, platform, snapshot_data);
   CHECK_NOT_NULL(isolate_);
+
 
   // If the indexes are not nullptr, we are not deserializing
   isolate_data_.reset(
@@ -92,9 +98,12 @@ ExitCode NodeMainInstance::Run() {
   HandleScope handle_scope(isolate_);
 
   ExitCode exit_code = ExitCode::kNoFailure;
+
+  double _t = uv_hrtime();
   DeleteFnPtr<Environment, FreeEnvironment> env =
       CreateMainEnvironment(&exit_code);
   CHECK_NOT_NULL(env);
+  printf("CreateMainEnvironment -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   Context::Scope context_scope(env->context());
   Run(&exit_code, env.get());
@@ -117,7 +126,9 @@ void NodeMainInstance::Run(ExitCode* exit_code, Environment* env) {
     // Either there is already a snapshot main function from SEA, or it's not
     // a SEA at all.
     if (!runs_sea_code) {
+      double _t = uv_hrtime();
       LoadEnvironment(env, StartExecutionCallback{});
+      printf("LoadEnvironment() -> %f\n", (uv_hrtime() - _t) / 1e6);
     }
 
     *exit_code =

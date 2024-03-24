@@ -31,6 +31,8 @@
 #include "node_snapshot_builder.h"
 #include "node_watchdog.h"
 #include "util-inl.h"
+#include "node_perf.h"
+#include <cstdio>
 
 namespace node {
 namespace contextify {
@@ -1088,7 +1090,9 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   bool timed_out = false;
   bool received_signal = false;
   auto run = [&]() {
+          double _t = uv_hrtime();
     MaybeLocal<Value> result = script->Run(context);
+  printf("run result -> %f\n", (uv_hrtime() - _t) / 1e6);
     if (!result.IsEmpty() && mtask_queue != nullptr)
       mtask_queue->PerformCheckpoint(env->isolate());
     return result;

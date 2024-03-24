@@ -21,6 +21,7 @@
 
 #include "node.h"
 #include <cstdio>
+#include "node_perf.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -94,6 +95,9 @@ int wmain(int argc, wchar_t* wargv[]) {
 // UNIX
 
 int main(int argc, char* argv[]) {
-  return node::Start(argc, argv);
+  double _t = uv_hrtime();
+  int r = node::Start(argc, argv);
+  printf("total -> %f\n", (uv_hrtime() - _t) / 1e6);
+  return r;
 }
 #endif

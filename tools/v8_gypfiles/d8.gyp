@@ -31,6 +31,7 @@
         '<(V8_ROOT)/src/d8/async-hooks-wrapper.cc',
         '<(V8_ROOT)/src/d8/async-hooks-wrapper.h',
         '<(V8_ROOT)/src/d8/d8-console.cc',
+        '<(V8_ROOT)/src/d8/d8-test.cc',
         '<(V8_ROOT)/src/d8/d8-console.h',
         '<(V8_ROOT)/src/d8/d8-js.cc',
         '<(V8_ROOT)/src/d8/d8-platforms.cc',

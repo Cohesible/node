@@ -57,6 +57,8 @@
       '<@(node_builtin_shareable_builtins)',
     ],
     'node_sources': [
+      'src/api/c-api.cc',
+      'src/api/c-api.h',
       'src/api/async_resource.cc',
       'src/api/callback.cc',
       'src/api/embed_helpers.cc',
