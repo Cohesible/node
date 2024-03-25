@@ -359,7 +359,7 @@ Isolate* NewIsolate(Isolate::CreateParams* params,
   SetIsolateCreateParamsForNode(params);
   double _t = uv_hrtime();
   Isolate::Initialize(isolate, *params); // This takes the most amount of time to init the VM (~2ms warm)
-  printf("Isolate::Initialize %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf("Isolate::Initialize %f\n", (uv_hrtime() - _t) / 1e6);
 
   Isolate::Scope isolate_scope(isolate);
 
@@ -459,7 +459,7 @@ Environment* CreateEnvironment(
                                      flags,
                                      thread_id);
   CHECK_NOT_NULL(env);
-  printf(" - new Environment-> %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf(" - new Environment-> %f\n", (uv_hrtime() - _t) / 1e6);
   _t = uv_hrtime();
 
   if (use_snapshot) {
@@ -468,7 +468,7 @@ Environment* CreateEnvironment(
                                     {DeserializeNodeInternalFields, env})
                   .ToLocalChecked();
 
-  printf(" - deserialize snapshot ctx -> %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf(" - deserialize snapshot ctx -> %f\n", (uv_hrtime() - _t) / 1e6);
 
 
     CHECK(!context.IsEmpty());
@@ -480,14 +480,12 @@ Environment* CreateEnvironment(
       return nullptr;
     }
     SetIsolateErrorHandlers(isolate, {});
-      printf(" - init ctx runtime -> %f\n", (uv_hrtime() - _t) / 1e6);
   }
 
 
     _t = uv_hrtime();
   Context::Scope context_scope(context);
   env->InitializeMainContext(context, env_snapshot_info);
-    printf(" - init main ctx -> %f\n", (uv_hrtime() - _t) / 1e6);
 
 
 #if HAVE_INSPECTOR

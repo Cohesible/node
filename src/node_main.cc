@@ -97,7 +97,7 @@ int wmain(int argc, wchar_t* wargv[]) {
 int main(int argc, char* argv[]) {
   double _t = uv_hrtime();
   int r = node::Start(argc, argv);
-  printf("total -> %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf("total -> %f\n", (uv_hrtime() - _t) / 1e6);
   return r;
 }
 #endif

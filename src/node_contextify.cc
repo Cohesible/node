@@ -1092,7 +1092,7 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
   auto run = [&]() {
           double _t = uv_hrtime();
     MaybeLocal<Value> result = script->Run(context);
-  printf("run result -> %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf("run result -> %f\n", (uv_hrtime() - _t) / 1e6);
     if (!result.IsEmpty() && mtask_queue != nullptr)
       mtask_queue->PerformCheckpoint(env->isolate());
     return result;

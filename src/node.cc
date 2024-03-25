@@ -319,8 +319,6 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
   // Only snapshot builder or embedder applications set the
   // callback.
   if (cb != nullptr) {
-      printf("has cb\n");
-
     EscapableHandleScope scope(env->isolate());
 
     Local<Value> result;
@@ -424,11 +422,7 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     return StartExecution(env, "internal/main/repl");
   }
 
-      double _t = uv_hrtime();
-      auto eval_res = StartExecution(env, "internal/main/eval_stdin");
-            printf("eval result -> %f\n", (uv_hrtime() - _t) / 1e6);
-
-  return eval_res;
+  return StartExecution(env, "internal/main/eval_stdin");
 }
 
 #ifdef __POSIX__
@@ -551,9 +545,11 @@ static_assert(
     std::is_same_v<std::underlying_type_t<ProcessInitializationFlags::Flags>,
                    uint32_t>);
 
+// 2-3ms
 static void PlatformInit(ProcessInitializationFlags::Flags flags) {
   // init_process_flags is accessed in ResetStdio(),
   // which can be called from signal handlers.
+  double _t = uv_hrtime();
   CHECK(init_process_flags.is_lock_free());
   init_process_flags.store(flags);
 
@@ -665,7 +661,7 @@ static void PlatformInit(ProcessInitializationFlags::Flags flags) {
 #endif
     }
 #endif  // defined(_WIN32)
-    V8::EnableWebAssemblyTrapHandler(false);
+    // V8::EnableWebAssemblyTrapHandler(false);
 #endif  // NODE_USE_V8_WASM_TRAP_HANDLER
   }
 
@@ -706,6 +702,8 @@ static void PlatformInit(ProcessInitializationFlags::Flags flags) {
     }
   }
 #endif  // _WIN32
+
+  // printf("Platform init -> %f\n", (uv_hrtime() - _t) / 1e6);
 }
 
 // Safe to call more than once and from signal handlers.
@@ -867,6 +865,9 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
 
 static std::atomic_bool init_called{false};
 
+static std::mutex g_crypto_mutex;
+static bool crypto_init = false;
+
 // TODO(addaleax): Turn this into a wrapper around InitializeOncePerProcess()
 // (with the corresponding additional flags set), then eventually remove this.
 static ExitCode InitializeNodeWithArgsInternal(
@@ -881,8 +882,8 @@ static ExitCode InitializeNodeWithArgsInternal(
   per_process::node_start_time = uv_hrtime();
 
   // Register built-in bindings
-  binding::RegisterBuiltinBindings();
-  printf("register builtins -> %f\n", (uv_hrtime() - per_process::node_start_time) / 1e6);
+  binding::RegisterBuiltinBindings(); // negligible impact on startup time
+  // printf("register builtins -> %f\n", (uv_hrtime() - per_process::node_start_time) / 1e6);
 
 
   // Make inherited handles noninheritable.
@@ -915,7 +916,9 @@ static ExitCode InitializeNodeWithArgsInternal(
 
   // Specify this explicitly to avoid being affected by V8 changes to the
   // default value.
-  V8::SetFlagsFromString("--rehash-snapshot");
+  // V8::SetFlagsFromString("--rehash-snapshot");
+
+  double _t = uv_hrtime();
 
   HandleEnvOptions(per_process::cli_options->per_isolate->per_env);
 
@@ -968,6 +971,8 @@ static ExitCode InitializeNodeWithArgsInternal(
         ProcessGlobalArgsInternal(argv, exec_argv, errors, kDisallowedInEnvvar);
     if (exit_code != ExitCode::kNoFailure) return exit_code;
   }
+
+  // printf("parse node cli options -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   // Set the process.title immediately after processing argv if --title is set.
   if (!per_process::cli_options->title.empty())
@@ -1045,6 +1050,8 @@ auto result = std::make_unique<InitializationResultImpl>();
 result->args_ = args;
 
 #if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
+    g_crypto_mutex.lock();
+
     auto GetOpenSSLErrorString = []() -> std::string {
       std::string ret;
       ERR_print_errors_cb(
@@ -1136,14 +1143,7 @@ result->args_ = args;
     // Ensure CSPRNG is properly seeded.
     CHECK(crypto::CSPRNG(nullptr, 0).is_ok());
 
-    V8::SetEntropySource([](unsigned char* buffer, size_t length) {
-      // V8 falls back to very weak entropy when this function fails
-      // and /dev/urandom isn't available. That wouldn't be so bad if
-      // the entropy was only used for Math.random() but it's also used for
-      // hash table and address space layout randomization. Better to abort.
-      CHECK(crypto::CSPRNG(buffer, length).is_ok());
-      return true;
-    });
+    g_crypto_mutex.unlock();
 
     {
       std::string extra_ca_certs;
@@ -1153,156 +1153,6 @@ result->args_ = args;
 #endif  // HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
 
 return result;
-}
-
-static std::unique_ptr<InitializationResultImpl>
-InitializeOncePerProcessInternal(const std::vector<std::string>& args,
-                                 ProcessInitializationFlags::Flags flags =
-                                     ProcessInitializationFlags::kNoFlags) {
-  auto result = std::make_unique<InitializationResultImpl>();
-  result->args_ = args;
-
-  if (!(flags & ProcessInitializationFlags::kNoParseGlobalDebugVariables)) {
-    // Initialized the enabled list for Debug() calls with system
-    // environment variables.
-    per_process::enabled_debug_list.Parse(per_process::system_environment);
-  }
-  double _t = uv_hrtime();
-
-  std::vector<std::thread*> threads;
-
-    threads.emplace_back(new std::thread(PlatformInit, flags));    
-
-  if (!(flags & ProcessInitializationFlags::kNoInitOpenSSL)) {
-    std::thread* task = new std::thread(InitCrypto, args, flags);
-    threads.emplace_back(task);    
-
-    // auto result = InitCrypto(args, flags);
-    // if (result->exit_code_enum() != ExitCode::kNoFailure) {
-    //   result->early_return_ = true;
-    //   return result;
-    // }
-  }
-
- _t = uv_hrtime();
-  // This needs to run *before* V8::Initialize().
-  {
-    result->exit_code_ = InitializeNodeWithArgsInternal(
-        &result->args_, &result->exec_args_, &result->errors_, flags);
-    if (result->exit_code_enum() != ExitCode::kNoFailure) {
-      result->early_return_ = true;
-      return result;
-    }
-  }
-  printf("InitializeNodeWithArgsInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
- _t = uv_hrtime();
-
-  if (!(flags & ProcessInitializationFlags::kNoUseLargePages) &&
-      (per_process::cli_options->use_largepages == "on" ||
-       per_process::cli_options->use_largepages == "silent")) {
-    int lp_result = node::MapStaticCodeToLargePages();
-    if (per_process::cli_options->use_largepages == "on" && lp_result != 0) {
-      result->errors_.emplace_back(node::LargePagesError(lp_result));
-    }
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoPrintHelpOrVersionOutput)) {
-    if (per_process::cli_options->print_version) {
-      printf("%s\n", NODE_VERSION);
-      result->exit_code_ = ExitCode::kNoFailure;
-      result->early_return_ = true;
-      return result;
-    }
-
-    if (per_process::cli_options->print_bash_completion) {
-      std::string completion = options_parser::GetBashCompletion();
-      printf("%s\n", completion.c_str());
-      result->exit_code_ = ExitCode::kNoFailure;
-      result->early_return_ = true;
-      return result;
-    }
-
-    if (per_process::cli_options->print_v8_help) {
-      V8::SetFlagsFromString("--help", static_cast<size_t>(6));
-      result->exit_code_ = ExitCode::kNoFailure;
-      result->early_return_ = true;
-      return result;
-    }
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoInitializeNodeV8Platform)) {
-    per_process::v8_platform.Initialize(
-        static_cast<int>(per_process::cli_options->v8_thread_pool_size));
-    result->platform_ = per_process::v8_platform.Platform();
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoInitializeV8)) {
-    V8::Initialize();
-  }
-
-  printf("v8 init -> %f\n", (uv_hrtime() - _t) / 1e6);
-  _t = uv_hrtime();
-
-  if (!(flags & ProcessInitializationFlags::kNoInitializeCppgc)) {
-    v8::PageAllocator* allocator = nullptr;
-    if (result->platform_ != nullptr) {
-      allocator = result->platform_->GetPageAllocator();
-    }
-    cppgc::InitializeProcess(allocator);
-  }
-
-  printf("cppgc init -> %f\n", (uv_hrtime() - _t) / 1e6);
-
-  performance::performance_v8_start = PERFORMANCE_NOW();
-  per_process::v8_initialized = true;
-
-  _t = uv_hrtime();
-  for (auto task : threads) {
-    task->join();
-    delete task;
-  }
-
-  return result;
-}
-
-std::unique_ptr<InitializationResult> InitializeOncePerProcess(
-    const std::vector<std::string>& args,
-    ProcessInitializationFlags::Flags flags) {
-  return InitializeOncePerProcessInternal(args, flags);
-}
-
-void TearDownOncePerProcess() {
-  const uint32_t flags = init_process_flags.load();
-  ResetStdio();
-  if (!(flags & ProcessInitializationFlags::kNoDefaultSignalHandling)) {
-    ResetSignalHandlers();
-  }
-
-  if (!(flags & ProcessInitializationFlags::kNoInitializeCppgc)) {
-    cppgc::ShutdownProcess();
-  }
-
-  per_process::v8_initialized = false;
-  if (!(flags & ProcessInitializationFlags::kNoInitializeV8)) {
-    V8::Dispose();
-  }
-
-#if NODE_USE_V8_WASM_TRAP_HANDLER && defined(_WIN32)
-  if (!(flags & ProcessInitializationFlags::kNoDefaultSignalHandling)) {
-    RemoveVectoredExceptionHandler(per_process::old_vectored_exception_handler);
-  }
-#endif
-
-  if (!(flags & ProcessInitializationFlags::kNoInitializeNodeV8Platform)) {
-    V8::DisposePlatform();
-    // uv_run cannot be called from the time before the beforeExit callback
-    // runs until the program exits unless the event loop has any referenced
-    // handles after beforeExit terminates. This prevents unrefed timers
-    // that happen to terminate during shutdown from being run unsafely.
-    // Since uv_run cannot be called, uv_async handles held by the platform
-    // will never be fully cleaned up.
-    per_process::v8_platform.Dispose();
-  }
 }
 
 ExitCode GenerateAndWriteSnapshotData(const SnapshotData** snapshot_data_ptr,
@@ -1462,11 +1312,223 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
       // was built without one.
       *snapshot_data_ptr = read_data;
 
-      printf("snapshot init -> %f\n", (uv_hrtime() - _t) / 1e6);
+      // printf("snapshot init -> %f\n", (uv_hrtime() - _t) / 1e6);
     }
   }
 
   return true;
+}
+
+static std::unique_ptr<InitializationResultImpl>
+InitializeOncePerProcessInternal(const std::vector<std::string>& args,
+                                 ProcessInitializationFlags::Flags flags =
+                                     ProcessInitializationFlags::kNoFlags) {
+  auto result = std::make_unique<InitializationResultImpl>();
+  result->args_ = args;
+
+  if (!(flags & ProcessInitializationFlags::kNoParseGlobalDebugVariables)) {
+    // Initialized the enabled list for Debug() calls with system
+    // environment variables.
+    per_process::enabled_debug_list.Parse(per_process::system_environment);
+  }
+  double _t = uv_hrtime();
+
+  std::vector<std::thread*> threads;
+
+    threads.emplace_back(new std::thread(PlatformInit, flags));    
+
+  if (!(flags & ProcessInitializationFlags::kNoInitOpenSSL)) {
+    std::thread* task = new std::thread(InitCrypto, args, flags);
+    threads.emplace_back(task);    
+
+    // auto result = InitCrypto(args, flags);
+    // if (result->exit_code_enum() != ExitCode::kNoFailure) {
+    //   result->early_return_ = true;
+    //   return result;
+    // }
+  }
+  double _tt = uv_hrtime();
+
+ _t = uv_hrtime();
+  // This needs to run *before* V8::Initialize().
+  {
+    // ~0.5ms or so
+    result->exit_code_ = InitializeNodeWithArgsInternal(
+        &result->args_, &result->exec_args_, &result->errors_, flags);
+    if (result->exit_code_enum() != ExitCode::kNoFailure) {
+      result->early_return_ = true;
+      return result;
+    }
+  }
+   // printf("InitializeNodeWithArgsInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
+
+#if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
+     V8::SetEntropySource([](unsigned char* buffer, size_t length) {
+      // V8 falls back to very weak entropy when this function fails
+      // and /dev/urandom isn't available. That wouldn't be so bad if
+      // the entropy was only used for Math.random() but it's also used for
+      // hash table and address space layout randomization. Better to abort.
+      if (!crypto_init) {
+        g_crypto_mutex.lock();
+        CHECK(crypto::CSPRNG(buffer, length).is_ok());
+        crypto_init = true;
+        g_crypto_mutex.unlock();
+      } else {
+        CHECK(crypto::CSPRNG(buffer, length).is_ok());
+      }
+
+      return true;
+    });
+#endif // HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
+
+  if (!(flags & ProcessInitializationFlags::kNoUseLargePages) &&
+      (per_process::cli_options->use_largepages == "on" ||
+       per_process::cli_options->use_largepages == "silent")) {
+    int lp_result = node::MapStaticCodeToLargePages();
+    if (per_process::cli_options->use_largepages == "on" && lp_result != 0) {
+      result->errors_.emplace_back(node::LargePagesError(lp_result));
+    }
+  }
+
+  if (!(flags & ProcessInitializationFlags::kNoPrintHelpOrVersionOutput)) {
+    if (per_process::cli_options->print_version) {
+      printf("%s\n", NODE_VERSION);
+      result->exit_code_ = ExitCode::kNoFailure;
+      result->early_return_ = true;
+      return result;
+    }
+
+    if (per_process::cli_options->print_bash_completion) {
+      std::string completion = options_parser::GetBashCompletion();
+      printf("%s\n", completion.c_str());
+      result->exit_code_ = ExitCode::kNoFailure;
+      result->early_return_ = true;
+      return result;
+    }
+
+    if (per_process::cli_options->print_v8_help) {
+      V8::SetFlagsFromString("--help", static_cast<size_t>(6));
+      result->exit_code_ = ExitCode::kNoFailure;
+      result->early_return_ = true;
+      return result;
+    }
+  }
+
+#if NODE_USE_V8_WASM_TRAP_HANDLER
+  if (!(flags & ProcessInitializationFlags::kNoDefaultSignalHandling)) {
+    V8::EnableWebAssemblyTrapHandler(false);
+  }
+#endif  // NODE_USE_V8_WASM_TRAP_HANDLER
+
+  if (!(flags & ProcessInitializationFlags::kNoInitializeNodeV8Platform)) {
+    per_process::v8_platform.Initialize(
+        static_cast<int>(per_process::cli_options->v8_thread_pool_size));
+    result->platform_ = per_process::v8_platform.Platform();
+  }
+
+  if (!(flags & ProcessInitializationFlags::kNoInitializeV8)) {
+    V8::Initialize();
+  }
+
+  if (!(flags & ProcessInitializationFlags::kNoInitializeCppgc)) {
+    v8::PageAllocator* allocator = nullptr;
+    if (result->platform_ != nullptr) {
+      allocator = result->platform_->GetPageAllocator();
+    }
+    cppgc::InitializeProcess(allocator);
+  }
+
+  //printf("cppgc init -> %f\n", (uv_hrtime() - _t) / 1e6);
+
+  performance::performance_v8_start = PERFORMANCE_NOW();
+  per_process::v8_initialized = true;
+
+  // We can start creating an isolate at this point
+  const SnapshotData* snapshot_data = nullptr;
+  if (per_process::cli_options->per_isolate->build_snapshot) {
+    if (per_process::cli_options->per_isolate->build_snapshot_config.empty() &&
+        result->args().size() < 2) {
+      fprintf(stderr,
+              "--build-snapshot must be used with an entry point script.\n"
+              "Usage: node --build-snapshot /path/to/entry.js\n");
+      result->exit_code_ = ExitCode::kInvalidCommandLineArgument;
+
+      return result;
+    }
+
+    result->exit_code_ = GenerateAndWriteSnapshotData(&snapshot_data, result.get());
+
+    return result;
+  }
+
+
+  _t = uv_hrtime();
+
+  if (!LoadSnapshotData(&snapshot_data)) {
+    result->exit_code_ = ExitCode::kStartupSnapshotFailure;
+    return result;
+  }
+
+
+   // printf("start creating instance -> %f\n", (uv_hrtime() - _tt) / 1e6);
+
+  auto instance = new NodeMainInstance(snapshot_data,
+                                 uv_default_loop(),
+                                 per_process::v8_platform.Platform(),
+                                 result->args(),
+                                 result->exec_args());
+
+  result->instance_ = (void*)instance;
+
+  _t = uv_hrtime();
+  for (auto task : threads) {
+    task->join();
+    delete task;
+  }
+  // printf("slack time-> %f\n", (uv_hrtime() - _t) / 1e6);
+
+
+  return result;
+}
+
+std::unique_ptr<InitializationResult> InitializeOncePerProcess(
+    const std::vector<std::string>& args,
+    ProcessInitializationFlags::Flags flags) {
+  return InitializeOncePerProcessInternal(args, flags);
+}
+
+void TearDownOncePerProcess() {
+  const uint32_t flags = init_process_flags.load();
+  ResetStdio();
+  if (!(flags & ProcessInitializationFlags::kNoDefaultSignalHandling)) {
+    ResetSignalHandlers();
+  }
+
+  if (!(flags & ProcessInitializationFlags::kNoInitializeCppgc)) {
+    cppgc::ShutdownProcess();
+  }
+
+  per_process::v8_initialized = false;
+  if (!(flags & ProcessInitializationFlags::kNoInitializeV8)) {
+    V8::Dispose();
+  }
+
+#if NODE_USE_V8_WASM_TRAP_HANDLER && defined(_WIN32)
+  if (!(flags & ProcessInitializationFlags::kNoDefaultSignalHandling)) {
+    RemoveVectoredExceptionHandler(per_process::old_vectored_exception_handler);
+  }
+#endif
+
+  if (!(flags & ProcessInitializationFlags::kNoInitializeNodeV8Platform)) {
+    V8::DisposePlatform();
+    // uv_run cannot be called from the time before the beforeExit callback
+    // runs until the program exits unless the event loop has any referenced
+    // handles after beforeExit terminates. This prevents unrefed timers
+    // that happen to terminate during shutdown from being run unsafely.
+    // Since uv_run cannot be called, uv_async handles held by the platform
+    // will never be fully cleaned up.
+    per_process::v8_platform.Dispose();
+  }
 }
 
 static ExitCode StartInternal(int argc, char** argv) {
@@ -1488,18 +1550,21 @@ static ExitCode StartInternal(int argc, char** argv) {
 
   DCHECK_EQ(result->exit_code_enum(), ExitCode::kNoFailure);
   const SnapshotData* snapshot_data = nullptr;
-  printf("InitializeOncePerProcessInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf("InitializeOncePerProcessInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   auto cleanup_process = OnScopeLeave([&]() {
     double _t = uv_hrtime();
     TearDownOncePerProcess();
-    printf("TearDownOncePerProcess -> %f\n", (uv_hrtime() - _t) / 1e6);
 
-    if (snapshot_data != nullptr &&
-        snapshot_data->data_ownership == SnapshotData::DataOwnership::kOwned) {
-      delete snapshot_data;
-    }
+    // if (snapshot_data != nullptr &&
+    //     snapshot_data->data_ownership == SnapshotData::DataOwnership::kOwned) {
+    //   delete snapshot_data;
+    // }
   });
+
+  if (result->instance() == nullptr) {
+      return result->exit_code_enum();
+  }
 
   uv_loop_configure(uv_default_loop(), UV_METRICS_IDLE_TIME);
   std::string sea_config = per_process::cli_options->experimental_sea_config;
@@ -1526,22 +1591,21 @@ static ExitCode StartInternal(int argc, char** argv) {
   }
 
   // Without --build-snapshot, we are in snapshot loading mode.
-  if (!LoadSnapshotData(&snapshot_data)) {
-    return ExitCode::kStartupSnapshotFailure;
-  }
+  // if (!LoadSnapshotData(&snapshot_data)) {
+  //   return ExitCode::kStartupSnapshotFailure;
+  // }
 
-  _t = uv_hrtime();
+  // NodeMainInstance main_instance(snapshot_data,
+  //                                uv_default_loop(),
+  //                                per_process::v8_platform.Platform(),
+  //                                result->args(),
+  //                                result->exec_args());
 
-  NodeMainInstance main_instance(snapshot_data,
-                                 uv_default_loop(),
-                                 per_process::v8_platform.Platform(),
-                                 result->args(),
-                                 result->exec_args());
-
-  printf("vm init -> %f\n", (uv_hrtime() - _t) / 1e6);
-  _t = uv_hrtime();
-  auto res = main_instance.Run();
-  printf("main_instance.Run(); -> %f\n", (uv_hrtime() - _t) / 1e6);
+  //printf("vm init -> %f\n", (uv_hrtime() - _t) / 1e6);
+  auto instance = (NodeMainInstance*)result->instance();
+  auto res = instance->Run();
+  delete instance;
+  //printf("main_instance.Run(); -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   return res;
 }

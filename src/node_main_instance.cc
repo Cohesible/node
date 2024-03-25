@@ -103,7 +103,7 @@ ExitCode NodeMainInstance::Run() {
   DeleteFnPtr<Environment, FreeEnvironment> env =
       CreateMainEnvironment(&exit_code);
   CHECK_NOT_NULL(env);
-  printf("CreateMainEnvironment -> %f\n", (uv_hrtime() - _t) / 1e6);
+  // printf("CreateMainEnvironment -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   Context::Scope context_scope(env->context());
   Run(&exit_code, env.get());
@@ -128,7 +128,7 @@ void NodeMainInstance::Run(ExitCode* exit_code, Environment* env) {
     if (!runs_sea_code) {
       double _t = uv_hrtime();
       LoadEnvironment(env, StartExecutionCallback{});
-      printf("LoadEnvironment() -> %f\n", (uv_hrtime() - _t) / 1e6);
+      // printf("LoadEnvironment() -> %f\n", (uv_hrtime() - _t) / 1e6);
     }
 
     *exit_code =

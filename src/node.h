@@ -314,6 +314,8 @@ class NODE_EXTERN InitializationResult {
   // platform instance.
   virtual MultiIsolatePlatform* platform() const = 0;
 
+  virtual void* instance() const = 0;
+
  private:
   InitializationResult() = default;
   friend class InitializationResultImpl;
