@@ -44,7 +44,7 @@ PrefixedMessage.prototype.url = function (uri) {
  */
 PrefixedMessage.prototype.onMessage = function (fn) {
   window.addEventListener('message', e => {
-    if (typeof e.data === 'object' && e.data.hasOwnProperty('prefix')) {
+    if (typeof e.data === 'object' && Object.prototype.hasOwnProperty.call(e.data, 'prefix')) {
       if (e.data.prefix === this.prefix) {
         // Only invoke callback when `data` is an object containing
         // a `prefix` key with this object's prefix value

@@ -54,7 +54,7 @@ function make_absolute_url(options) {
 
 /** @private */
 function get(obj, name, default_val) {
-    if (obj.hasOwnProperty(name)) {
+    if (Object.prototype.hasOwnProperty.call(obj, name)) {
         return obj[name];
     }
     return default_val;

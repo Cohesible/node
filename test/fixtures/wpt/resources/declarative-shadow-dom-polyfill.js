@@ -12,7 +12,7 @@
  */
 
 function polyfill_declarative_shadow_dom(root) {
-  if (HTMLTemplateElement.prototype.hasOwnProperty('shadowRootMode'))
+  if (Object.prototype.hasOwnProperty.call(HTMLTemplateElement.prototype, 'shadowRootMode'))
     return;
   root.querySelectorAll("template[shadowrootmode]").forEach(template => {
     const mode = template.getAttribute("shadowrootmode");

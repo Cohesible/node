@@ -4,7 +4,7 @@
 // https://console.spec.whatwg.org/#console-namespace
 
 test(() => {
-  assert_true(self.hasOwnProperty("console"));
+  assert_true(Object.prototype.hasOwnProperty.call(self, "console"));
 }, "console exists on the global object");
 
 test(() => {

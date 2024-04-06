@@ -191,7 +191,7 @@ SRIStyleTest.prototype.execute = function() {
     // The link relation is guaranteed to not be "preload" or "modulepreload".
     this.attrs.rel = this.attrs.rel || "stylesheet";
     for (var key in this.attrs) {
-        if (this.attrs.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(this.attrs, key)) {
             e.setAttribute(key, this.attrs[key]);
         }
     }

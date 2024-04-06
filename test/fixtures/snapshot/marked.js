@@ -2179,13 +2179,13 @@
       var slug = originalSlug;
       var occurenceAccumulator = 0;
 
-      if (this.seen.hasOwnProperty(slug)) {
+      if (Object.prototype.hasOwnProperty.call(this.seen, slug)) {
         occurenceAccumulator = this.seen[originalSlug];
 
         do {
           occurenceAccumulator++;
           slug = originalSlug + '-' + occurenceAccumulator;
-        } while (this.seen.hasOwnProperty(slug));
+        } while (Object.prototype.hasOwnProperty.call(this.seen, slug));
       }
 
       if (!isDryRun) {

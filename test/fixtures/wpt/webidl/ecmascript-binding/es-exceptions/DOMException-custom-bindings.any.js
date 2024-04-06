@@ -14,7 +14,7 @@ test(() => {
 
 test(() => {
   const e = new DOMException("message", "name");
-  assert_false(e.hasOwnProperty("message"), "property is not own");
+  assert_false(Object.prototype.hasOwnProperty.call(e, "message"), "property is not own");
 
   const propDesc = Object.getOwnPropertyDescriptor(DOMException.prototype, "message");
   assert_equals(typeof propDesc.get, "function", "property descriptor is a getter");
@@ -31,7 +31,7 @@ test(() => {
 
 test(() => {
   const e = new DOMException("message", "name");
-  assert_false(e.hasOwnProperty("name"), "property is not own");
+  assert_false(Object.prototype.hasOwnProperty.call(e, "name"), "property is not own");
 
   const propDesc = Object.getOwnPropertyDescriptor(DOMException.prototype, "name");
   assert_equals(typeof propDesc.get, "function", "property descriptor is a getter");
@@ -48,7 +48,7 @@ test(() => {
 
 test(() => {
   const e = new DOMException("message", "name");
-  assert_false(e.hasOwnProperty("code"), "property is not own");
+  assert_false(Object.prototype.hasOwnProperty.call(e, "code"), "property is not own");
 
   const propDesc = Object.getOwnPropertyDescriptor(DOMException.prototype, "code");
   assert_equals(typeof propDesc.get, "function", "property descriptor is a getter");
@@ -81,8 +81,8 @@ test(() => {
 
 test(() => {
   const e = new DOMException("message", "name");
-  assert_false(e.hasOwnProperty("toString"), "toString must not exist on the instance");
-  assert_false(DOMException.prototype.hasOwnProperty("toString"), "toString must not exist on DOMException.prototype");
+  assert_false(Object.prototype.hasOwnProperty.call(e, "toString"), "toString must not exist on the instance");
+  assert_false(Object.prototype.hasOwnProperty.call(DOMException.prototype, "toString"), "toString must not exist on DOMException.prototype");
   assert_equals(typeof e.toString, "function", "toString must still exist (via Error.prototype)");
 }, "Inherits its toString() from Error.prototype");
 

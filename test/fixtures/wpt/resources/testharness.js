@@ -208,7 +208,7 @@
 
     WindowTestEnvironment.prototype.on_new_harness_properties = function(properties) {
         this.output_handler.setup(properties);
-        if (properties.hasOwnProperty("message_events")) {
+        if (Object.prototype.hasOwnProperty.call(properties, "message_events")) {
             this.setup_messages(properties.message_events);
         }
     };
@@ -1583,7 +1583,7 @@
 
              var p;
              for (p in actual) {
-                 assert(expected.hasOwnProperty(p), "assert_object_equals", description,
+                 assert(Object.prototype.hasOwnProperty.call(expected, p), "assert_object_equals", description,
                                                     "unexpected property ${p}", {p:p});
 
                  if (typeof actual[p] === "object" && actual[p] !== null) {
@@ -1597,7 +1597,7 @@
                  }
              }
              for (p in expected) {
-                 assert(actual.hasOwnProperty(p),
+                 assert(Object.prototype.hasOwnProperty.call(actual, p),
                         "assert_object_equals", description,
                         "expected property ${p} missing", {p:p});
              }
@@ -1657,11 +1657,11 @@
                });
 
         for (var i = 0; i < actual.length; i++) {
-            assert(actual.hasOwnProperty(i) === expected.hasOwnProperty(i),
+            assert(Object.prototype.hasOwnProperty.call(actual, i) === Object.prototype.hasOwnProperty.call(expected, i),
                    "assert_array_equals", description,
                    "expected property ${i} to be ${expected} but was ${actual} (expected array ${arrayExpected} got ${arrayActual})",
-                   {i:i, expected:expected.hasOwnProperty(i) ? "present" : "missing",
-                    actual:actual.hasOwnProperty(i) ? "present" : "missing",
+                   {i:i, Object.prototype.hasOwnProperty.call(expected:expected, i) ? "present" : "missing",
+                    Object.prototype.hasOwnProperty.call(actual:actual, i) ? "present" : "missing",
                     arrayExpected:shorten_array(expected, i), arrayActual:shorten_array(actual, i)});
             assert(same_value(expected[i], actual[i]),
                    "assert_array_equals", description,
@@ -1693,11 +1693,11 @@
                {expected:expected.length, actual:actual.length});
 
         for (var i = 0; i < actual.length; i++) {
-            assert(actual.hasOwnProperty(i) === expected.hasOwnProperty(i),
+            assert(Object.prototype.hasOwnProperty.call(actual, i) === Object.prototype.hasOwnProperty.call(expected, i),
                    "assert_array_approx_equals", description,
                    "property ${i}, property expected to be ${expected} but was ${actual}",
-                   {i:i, expected:expected.hasOwnProperty(i) ? "present" : "missing",
-                    actual:actual.hasOwnProperty(i) ? "present" : "missing"});
+                   {i:i, Object.prototype.hasOwnProperty.call(expected:expected, i) ? "present" : "missing",
+                    Object.prototype.hasOwnProperty.call(actual:actual, i) ? "present" : "missing"});
             assert(typeof actual[i] === "number",
                    "assert_array_approx_equals", description,
                    "property ${i}, expected a number but got a ${type_actual}",
@@ -1936,7 +1936,7 @@
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_own_property(object, property_name, description) {
-        assert(object.hasOwnProperty(property_name),
+        assert(Object.prototype.hasOwnProperty.call(object, property_name),
                "assert_own_property", description,
                "expected property ${p} missing", {p:property_name});
     }
@@ -1950,7 +1950,7 @@
      * @param {string} [description] - Description of the condition being tested.
      */
     function assert_not_own_property(object, property_name, description) {
-        assert(!object.hasOwnProperty(property_name),
+        assert(Object.prototype.hasOwnProperty.call(!object, property_name),
                "assert_not_own_property", description,
                "unexpected property ${p} is found on object", {p:property_name});
     }
@@ -1970,7 +1970,7 @@
                    name, description,
                    "provided value is an object but has no hasOwnProperty method");
 
-            assert(!object.hasOwnProperty(property_name),
+            assert(Object.prototype.hasOwnProperty.call(!object, property_name),
                    name, description,
                    "property ${p} found on object expected in prototype chain",
                    {p:property_name});
@@ -3044,7 +3044,7 @@
             if (errors.length) {
                 tests.status.message += ", and " + errors.length + " failed";
                 tests.status.stack = ((typeof errors[0] === "object" &&
-                                       errors[0].hasOwnProperty("stack")) ?
+                                       Object.prototype.hasOwnProperty.call(errors[0], "stack")) ?
                                       errors[0].stack : null);
             }
 
@@ -3467,7 +3467,7 @@
         this.properties = properties;
 
         for (var p in properties) {
-            if (properties.hasOwnProperty(p)) {
+            if (Object.prototype.hasOwnProperty.call(properties, p)) {
                 var value = properties[p];
                 if (p == "allow_uncaught_exception") {
                     this.allow_uncaught_exception = value;
@@ -4025,7 +4025,7 @@
 
         //If output is disabled in testharnessreport.js the test shouldn't be
         //able to override that
-        this.enabled = this.enabled && (properties.hasOwnProperty("output") ?
+        this.enabled = this.enabled && (Object.prototype.hasOwnProperty.call(properties, "output") ?
                                         properties.output : settings.output);
     };
 
@@ -4145,7 +4145,7 @@
         forEach(tests,
                 function(test) {
                     var status = test.format_status();
-                    if (status_number.hasOwnProperty(status)) {
+                    if (Object.prototype.hasOwnProperty.call(status_number, status)) {
                         status_number[status] += 1;
                     } else {
                         status_number[status] = 1;
@@ -4188,8 +4188,8 @@
                                 function() {
                                     var rv = [["div", {}]];
                                     var i = 0;
-                                    while (Test.prototype.status_formats.hasOwnProperty(i)) {
-                                        if (status_number.hasOwnProperty(Test.prototype.status_formats[i])) {
+                                    while (Object.prototype.hasOwnProperty.call(Test.prototype.status_formats, i)) {
+                                        if (Object.prototype.hasOwnProperty.call(status_number, Test.prototype.status_formats[i])) {
                                             var status = Test.prototype.status_formats[i];
                                             rv[0].push(["div", {},
                                                         ["label", {},
@@ -4244,7 +4244,7 @@
         function has_assertions()
         {
             for (var i = 0; i < tests.length; i++) {
-                if (tests[i].properties.hasOwnProperty("assert")) {
+                if (Object.prototype.hasOwnProperty.call(tests[i].properties, "assert")) {
                     return true;
                 }
             }
@@ -4253,7 +4253,7 @@
 
         function get_assertion(test)
         {
-            if (test.properties.hasOwnProperty("assert")) {
+            if (Object.prototype.hasOwnProperty.call(test.properties, "assert")) {
                 if (Array.isArray(test.properties.assert)) {
                     return test.properties.assert.join(' ');
                 }
@@ -4426,7 +4426,7 @@
         {
             rv[1] = {};
             for (var name in template[1]) {
-                if (attrs.hasOwnProperty(name)) {
+                if (Object.prototype.hasOwnProperty.call(attrs, name)) {
                     var new_name = do_substitution(name).join("");
                     var new_value = do_substitution(attrs[name]).join("");
                     rv[1][new_name] = new_value;
@@ -4478,7 +4478,7 @@
         } else {
             element = output_document.createElementNS(xhtml_ns, template[0]);
             for (var name in template[1]) {
-                if (template[1].hasOwnProperty(name)) {
+                if (Object.prototype.hasOwnProperty.call(template[1], name)) {
                     element.setAttribute(name, template[1][name]);
                 }
             }
@@ -4590,7 +4590,7 @@
     function make_message(function_name, description, error, substitutions)
     {
         for (var p in substitutions) {
-            if (substitutions.hasOwnProperty(p)) {
+            if (Object.prototype.hasOwnProperty.call(substitutions, p)) {
                 substitutions[p] = format_value(substitutions[p]);
             }
         }
@@ -4604,7 +4604,7 @@
     function filter(array, callable, thisObj) {
         var rv = [];
         for (var i = 0; i < array.length; i++) {
-            if (array.hasOwnProperty(i)) {
+            if (Object.prototype.hasOwnProperty.call(array, i)) {
                 var pass = callable.call(thisObj, array[i], i, array);
                 if (pass) {
                     rv.push(array[i]);
@@ -4619,7 +4619,7 @@
         var rv = [];
         rv.length = array.length;
         for (var i = 0; i < array.length; i++) {
-            if (array.hasOwnProperty(i)) {
+            if (Object.prototype.hasOwnProperty.call(array, i)) {
                 rv[i] = callable.call(thisObj, array[i], i, array);
             }
         }
@@ -4634,7 +4634,7 @@
     function forEach(array, callback, thisObj)
     {
         for (var i = 0; i < array.length; i++) {
-            if (array.hasOwnProperty(i)) {
+            if (Object.prototype.hasOwnProperty.call(array, i)) {
                 callback.call(thisObj, array[i], i, array);
             }
         }

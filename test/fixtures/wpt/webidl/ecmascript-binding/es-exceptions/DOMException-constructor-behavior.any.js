@@ -10,9 +10,9 @@ test(function() {
 
 test(function() {
   var ex = new DOMException();
-  assert_false(ex.hasOwnProperty("name"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "name"),
                "The name property should be inherited");
-  assert_false(ex.hasOwnProperty("message"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "message"),
                "The message property should be inherited");
 }, 'new DOMException(): inherited-ness');
 
@@ -34,9 +34,9 @@ test(function() {
 
 test(function() {
   var ex = new DOMException(undefined);
-  assert_false(ex.hasOwnProperty("name"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "name"),
                "The name property should be inherited");
-  assert_false(ex.hasOwnProperty("message"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "message"),
                "The message property should be inherited");
 }, 'new DOMException(undefined): inherited-ness');
 
@@ -49,9 +49,9 @@ test(function() {
 
 test(function() {
   var ex = new DOMException("foo");
-  assert_false(ex.hasOwnProperty("name"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "name"),
                "The name property should be inherited");
-  assert_false(ex.hasOwnProperty("message"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "message"),
               "The message property should be inherited");
 }, 'new DOMException("foo"): inherited-ness');
 
@@ -72,9 +72,9 @@ test(function() {
 
 test(function() {
   var ex = new DOMException("bar", "NotSupportedError");
-  assert_false(ex.hasOwnProperty("name"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "name"),
               "The name property should be inherited");
-  assert_false(ex.hasOwnProperty("message"),
+  assert_false(Object.prototype.hasOwnProperty.call(ex, "message"),
               "The message property should be inherited");
 }, 'new DOMException("bar", "NotSupportedError"): inherited-ness');
 

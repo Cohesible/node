@@ -126,7 +126,7 @@ var require_command = __commonJS({
           cmdStr += " ";
           let first = true;
           for (const key in this.properties) {
-            if (this.properties.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(this.properties, key)) {
               const val = this.properties[key];
               if (val) {
                 if (first) {

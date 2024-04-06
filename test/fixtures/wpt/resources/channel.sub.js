@@ -192,7 +192,7 @@
             if (typeof fn !== "function") {
                 throw new TypeError(`Expected function, got ${typeof fn}`);
             }
-            if (!this.eventListeners.hasOwnProperty(type)) {
+            if (Object.prototype.hasOwnProperty.call(!this.eventListeners, type)) {
                 throw new Error(`Unrecognised event type ${type}`);
             }
             this.eventListeners[type].add(fn);
@@ -796,7 +796,7 @@
 
             if (objectsSeen.has(item)) {
                 let outputValue = objectsSeen.get(item);
-                if (!outputValue.hasOwnProperty("objectId")) {
+                if (Object.prototype.hasOwnProperty.call(!outputValue, "objectId")) {
                     outputValue.objectId = lastObjectId++;
                 }
                 serialized.objectId = outputValue.objectId;

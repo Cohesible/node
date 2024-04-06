@@ -42,8 +42,8 @@ new RuleTester({
       },
       {
         code: `
-          const { SymbolIterator } = primordials;
-          class A { *[SymbolIterator] () { yield "a"; } }
+          const { Symbol.iterator } = primordials;
+          class A { *[Symbol.iterator] () { yield "a"; } }
         `,
         options: [{ name: 'Symbol' }]
       },
@@ -166,7 +166,7 @@ new RuleTester({
           class A { *[Symbol.iterator] () { yield "a"; } }
         `,
         options: [{ name: 'Symbol' }],
-        errors: [{ message: /const { SymbolIterator } = primordials/ }]
+        errors: [{ message: /const { Symbol.iterator } = primordials/ }]
       },
       {
         code: `
@@ -174,7 +174,7 @@ new RuleTester({
           const a = { *[Symbol.iterator] () { yield "a"; } }
         `,
         options: [{ name: 'Symbol' }],
-        errors: [{ message: /const { SymbolIterator } = primordials/ }]
+        errors: [{ message: /const { Symbol.iterator } = primordials/ }]
       },
       {
         code: `

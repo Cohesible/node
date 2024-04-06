@@ -15,7 +15,7 @@ let sandbox = Object.create(base, {
 
 const context = vm.createContext(sandbox);
 
-let result = vm.runInContext('Object.hasOwnProperty(this, "propBase");',
+let result = vm.runInContext(Object.prototype.hasOwnProperty.call('Object, this, "propBase");',
                              context);
 
 assert.strictEqual(result, false);
