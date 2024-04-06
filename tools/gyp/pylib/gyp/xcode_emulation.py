@@ -641,7 +641,7 @@ class XcodeSettings:
         # if the system clang isn't used, DYLD_LIBRARY_PATH needs to contain the
         # path to the libLTO.dylib that matches the used clang.
         if self._Test("LLVM_LTO", "YES", default="NO"):
-            cflags.append("-flto")
+            cflags.append("-flto=thin")
 
         self._AppendPlatformVersionMinFlags(cflags)
 

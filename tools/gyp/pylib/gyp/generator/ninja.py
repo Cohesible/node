@@ -2593,7 +2593,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params, config_name
             "alink",
             description="LIBTOOL-STATIC $out, POSTBUILDS",
             command="rm -f $out && "
-            "./gyp-mac-tool filter-libtool libtool $libtool_flags "
+            "./gyp-mac-tool filter-libtool /opt/homebrew/Cellar/llvm/17.0.6_1/bin/llvm-libtool-darwin $libtool_flags "
             "-static -o $out $in"
             "$postbuilds",
         )
