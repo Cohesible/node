@@ -1550,7 +1550,6 @@ static ExitCode StartInternal(int argc, char** argv) {
 
   DCHECK_EQ(result->exit_code_enum(), ExitCode::kNoFailure);
   const SnapshotData* snapshot_data = nullptr;
-  // printf("InitializeOncePerProcessInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   auto cleanup_process = OnScopeLeave([&]() {
     double _t = uv_hrtime();
@@ -1601,22 +1600,14 @@ static ExitCode StartInternal(int argc, char** argv) {
   //                                result->args(),
   //                                result->exec_args());
 
-  //printf("vm init -> %f\n", (uv_hrtime() - _t) / 1e6);
   auto instance = (NodeMainInstance*)result->instance();
   auto res = instance->Run();
   delete instance;
-  //printf("main_instance.Run(); -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   return res;
 }
 
 int Start(int argc, char** argv) {
-  auto args = std::vector<std::string>(argv, argv + argc);
-  if (args[1] == "--version") {
-    printf("aaa %s\n", NODE_VERSION);
-    return 0;
-  }
-
 #ifndef DISABLE_SINGLE_EXECUTABLE_APPLICATION
   std::tie(argc, argv) = sea::FixupArgsForSEA(argc, argv);
 #endif

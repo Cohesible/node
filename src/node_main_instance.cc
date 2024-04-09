@@ -99,11 +99,9 @@ ExitCode NodeMainInstance::Run() {
 
   ExitCode exit_code = ExitCode::kNoFailure;
 
-  double _t = uv_hrtime();
   DeleteFnPtr<Environment, FreeEnvironment> env =
       CreateMainEnvironment(&exit_code);
   CHECK_NOT_NULL(env);
-  // printf("CreateMainEnvironment -> %f\n", (uv_hrtime() - _t) / 1e6);
 
   Context::Scope context_scope(env->context());
   Run(&exit_code, env.get());
@@ -126,9 +124,7 @@ void NodeMainInstance::Run(ExitCode* exit_code, Environment* env) {
     // Either there is already a snapshot main function from SEA, or it's not
     // a SEA at all.
     if (!runs_sea_code) {
-      double _t = uv_hrtime();
       LoadEnvironment(env, StartExecutionCallback{});
-      // printf("LoadEnvironment() -> %f\n", (uv_hrtime() - _t) / 1e6);
     }
 
     *exit_code =
