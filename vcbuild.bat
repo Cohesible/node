@@ -51,6 +51,7 @@ set lint_md_build=
 set i18n_arg=
 set download_arg=
 set build_release=
+set build_synapse_release=
 set configure_flags=
 set enable_vtune_arg=
 set build_addons=
@@ -144,6 +145,7 @@ if /i "%1"=="openssl-no-asm"   set openssl_no_asm=1&goto arg-ok
 if /i "%1"=="no-shared-roheap" set no_shared_roheap=1&goto arg-ok
 if /i "%1"=="doc"           set doc=1&goto arg-ok
 if /i "%1"=="binlog"        set extra_msbuild_args=/binaryLogger:%config%\node.binlog&goto arg-ok
+if /i "%1"=="build-synapse-release"        set build_synapse_release=1&goto arg-ok
 
 echo Error: invalid command line option `%1`.
 exit /b 1
@@ -166,6 +168,16 @@ if defined build_release (
   set projgen=1
   set cctest=1
   set ltcg=1
+)
+
+if defined build_synapse_release (
+  set config=Release
+  set download_arg="--download=all"
+  set i18n_arg=full-icu
+  set ltcg=1
+  set nonpm=1
+  set nocorepack=1
+  set no_cctest=1
 )
 
 if defined msi     set stage_package=1

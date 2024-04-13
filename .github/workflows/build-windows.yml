@@ -51,7 +51,7 @@ jobs:
       - name: Environment Information
         run: npx envinfo
       - name: Build
-        run: ./vcbuild.bat
+        run: ./vcbuild.bat build-synapse-release
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
