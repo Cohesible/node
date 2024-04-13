@@ -553,7 +553,6 @@ static_assert(
 static void PlatformInit(ProcessInitializationFlags::Flags flags) {
   // init_process_flags is accessed in ResetStdio(),
   // which can be called from signal handlers.
-  double _t = uv_hrtime();
   CHECK(init_process_flags.is_lock_free());
   init_process_flags.store(flags);
 
@@ -869,7 +868,7 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
 
 static std::atomic_bool init_called{false};
 
-static std::mutex g_crypto_mutex;
+static Mutex g_crypto_mutex;
 static bool crypto_init = false;
 
 // TODO(addaleax): Turn this into a wrapper around InitializeOncePerProcess()
@@ -921,8 +920,6 @@ static ExitCode InitializeNodeWithArgsInternal(
   // Specify this explicitly to avoid being affected by V8 changes to the
   // default value.
   // V8::SetFlagsFromString("--rehash-snapshot");
-
-  double _t = uv_hrtime();
 
   HandleEnvOptions(per_process::cli_options->per_isolate->per_env);
 
@@ -1054,7 +1051,7 @@ auto result = std::make_unique<InitializationResultImpl>();
 result->args_ = args;
 
 #if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
-    g_crypto_mutex.lock();
+    g_crypto_mutex.Lock();
 
     auto GetOpenSSLErrorString = []() -> std::string {
       std::string ret;
@@ -1147,7 +1144,7 @@ result->args_ = args;
     // Ensure CSPRNG is properly seeded.
     CHECK(crypto::CSPRNG(nullptr, 0).is_ok());
 
-    g_crypto_mutex.unlock();
+    g_crypto_mutex.Unlock();
 
     {
       std::string extra_ca_certs;
@@ -1302,7 +1299,6 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
   }
 
   if (per_process::cli_options->node_snapshot) {
-      double _t = uv_hrtime();
     // If --snapshot-blob is not specified or if the SEA contains no snapshot,
     // we are reading the embedded snapshot, but we will skip it if
     // --no-node-snapshot is specified.
@@ -1335,8 +1331,6 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     // environment variables.
     per_process::enabled_debug_list.Parse(per_process::system_environment);
   }
-  double _t = uv_hrtime();
-
   std::vector<std::thread*> threads;
 
     threads.emplace_back(new std::thread(PlatformInit, flags));    
@@ -1351,9 +1345,7 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     //   return result;
     // }
   }
-  double _tt = uv_hrtime();
 
- _t = uv_hrtime();
   // This needs to run *before* V8::Initialize().
   {
     // ~0.5ms or so
@@ -1373,10 +1365,10 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
       // the entropy was only used for Math.random() but it's also used for
       // hash table and address space layout randomization. Better to abort.
       if (!crypto_init) {
-        g_crypto_mutex.lock();
+        g_crypto_mutex.Lock();
         CHECK(crypto::CSPRNG(buffer, length).is_ok());
         crypto_init = true;
-        g_crypto_mutex.unlock();
+        g_crypto_mutex.Unlock();
       } else {
         CHECK(crypto::CSPRNG(buffer, length).is_ok());
       }
@@ -1466,31 +1458,25 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
   }
 
 
-  _t = uv_hrtime();
-
   if (!LoadSnapshotData(&snapshot_data)) {
     result->exit_code_ = ExitCode::kStartupSnapshotFailure;
     return result;
   }
 
+  if (per_process::cli_options->experimental_sea_config.empty()) {
+    auto instance = new NodeMainInstance(snapshot_data,
+                                  uv_default_loop(),
+                                  per_process::v8_platform.Platform(),
+                                  result->args(),
+                                  result->exec_args());
 
-   // printf("start creating instance -> %f\n", (uv_hrtime() - _tt) / 1e6);
+    result->instance_ = (void*)instance;
+  }
 
-  auto instance = new NodeMainInstance(snapshot_data,
-                                 uv_default_loop(),
-                                 per_process::v8_platform.Platform(),
-                                 result->args(),
-                                 result->exec_args());
-
-  result->instance_ = (void*)instance;
-
-  _t = uv_hrtime();
   for (auto task : threads) {
     task->join();
     delete task;
   }
-  // printf("slack time-> %f\n", (uv_hrtime() - _t) / 1e6);
-
 
   return result;
 }
@@ -1540,7 +1526,6 @@ static ExitCode StartInternal(int argc, char** argv) {
 
   // Hack around with the argv pointer. Used for process.title = "blah".
   argv = uv_setup_args(argc, argv);
-      double _t = uv_hrtime();
 
   std::unique_ptr<InitializationResultImpl> result =
       InitializeOncePerProcessInternal(
@@ -1556,7 +1541,6 @@ static ExitCode StartInternal(int argc, char** argv) {
   const SnapshotData* snapshot_data = nullptr;
 
   auto cleanup_process = OnScopeLeave([&]() {
-    double _t = uv_hrtime();
     TearDownOncePerProcess();
 
     // if (snapshot_data != nullptr &&
@@ -1564,10 +1548,6 @@ static ExitCode StartInternal(int argc, char** argv) {
     //   delete snapshot_data;
     // }
   });
-
-  if (result->instance() == nullptr) {
-      return result->exit_code_enum();
-  }
 
   uv_loop_configure(uv_default_loop(), UV_METRICS_IDLE_TIME);
   std::string sea_config = per_process::cli_options->experimental_sea_config;
@@ -1593,16 +1573,9 @@ static ExitCode StartInternal(int argc, char** argv) {
     return GenerateAndWriteSnapshotData(&snapshot_data, result.get());
   }
 
-  // Without --build-snapshot, we are in snapshot loading mode.
-  // if (!LoadSnapshotData(&snapshot_data)) {
-  //   return ExitCode::kStartupSnapshotFailure;
-  // }
-
-  // NodeMainInstance main_instance(snapshot_data,
-  //                                uv_default_loop(),
-  //                                per_process::v8_platform.Platform(),
-  //                                result->args(),
-  //                                result->exec_args());
+  if (result->instance() == nullptr) {
+      return result->exit_code_enum();
+  }
 
   auto instance = (NodeMainInstance*)result->instance();
   auto res = instance->Run();

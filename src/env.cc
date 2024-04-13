@@ -1832,7 +1832,7 @@ EnvSerializeInfo Environment::Serialize(SnapshotCreator* creator) {
   info.principal_realm = principal_realm_->Serialize(creator);
   // For now we only support serialization of the main context.
   // TODO(joyeecheung): support de/serialization of vm contexts.
-  // CHECK_EQ(contexts_.size(), 1);
+  CHECK_EQ(contexts_.size(), 1);
   CHECK_EQ(contexts_[0], context());
   return info;
 }
