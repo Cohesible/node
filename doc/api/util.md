@@ -1598,7 +1598,9 @@ $ node negate.js --no-logfile --logfile=test.log --color --no-color
 > Stability: 1.1 - Active development
 
 <!-- YAML
-added: v21.7.0
+added:
+  - v21.7.0
+  - v20.12.0
 -->
 
 * `content` {string}
@@ -1797,10 +1799,13 @@ console.log(util.stripVTControlCharacters('\u001B[4mvalue\u001B[0m'));
 > Stability: 1.1 - Active development
 
 <!-- YAML
-added: v21.7.0
+added:
+  - v21.7.0
+  - v20.12.0
 -->
 
-* `format` {string} A text format defined in `util.inspect.colors`.
+* `format` {string | Array} A text format or an Array
+  of text formats defined in `util.inspect.colors`.
 * `text` {string} The text to to be formatted.
 
 This function returns a formatted text considering the `format` passed.
@@ -1822,7 +1827,16 @@ console.log(errorMessage);
 
 ```cjs
 console.log(
-  util.styleText('underline', util.styleText('italic', 'My italic underlined message')),
+  util.styleText(['underline', 'italic'], 'My italic underlined message'),
+);
+```
+
+When passing an array of formats, the order of the format applied
+is left to right so the following style might overwrite the previous one.
+
+```cjs
+console.log(
+  util.styleText(['red', 'green'], 'text'), // green
 );
 ```
 

@@ -180,9 +180,6 @@ changes:
 
 `options` in [`socket.connect()`][] are also supported.
 
-The default [`http.globalAgent`][] that is used by [`http.request()`][] has all
-of these values set to their respective defaults.
-
 To configure any of them, a custom [`http.Agent`][] instance must be created.
 
 ```mjs
@@ -3654,13 +3651,15 @@ changes:
   - version:
       - v19.0.0
     pr-url: https://github.com/nodejs/node/pull/43522
-    description: The agent now uses HTTP Keep-Alive by default.
+    description: The agent now uses HTTP Keep-Alive and a 5 second timeout by
+                 default.
 -->
 
 * {http.Agent}
 
 Global instance of `Agent` which is used as the default for all HTTP client
-requests.
+requests. Diverges from a default `Agent` configuration by having `keepAlive`
+enabled and a `timeout` of 5 seconds.
 
 ## `http.maxHeaderSize`
 
@@ -3943,9 +3942,9 @@ the following events will be emitted in the following order:
   * `'data'` any number of times, on the `res` object
 * (connection closed here)
 * `'aborted'` on the `res` object
+* `'close'`
 * `'error'` on the `res` object with an error with message
   `'Error: aborted'` and code `'ECONNRESET'`
-* `'close'`
 * `'close'` on the `res` object
 
 If `req.destroy()` is called before a socket is assigned, the following
@@ -3973,9 +3972,9 @@ events will be emitted in the following order:
   * `'data'` any number of times, on the `res` object
 * (`req.destroy()` called here)
 * `'aborted'` on the `res` object
+* `'close'`
 * `'error'` on the `res` object with an error with message `'Error: aborted'`
   and code `'ECONNRESET'`, or the error with which `req.destroy()` was called
-* `'close'`
 * `'close'` on the `res` object
 
 If `req.abort()` is called before a socket is assigned, the following

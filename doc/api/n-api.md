@@ -794,7 +794,10 @@ handle and/or callback scope inside a `napi_callback` is not necessary.
 #### `node_api_nogc_finalize`
 
 <!-- YAML
-added: v21.6.0
+added:
+  - v21.6.0
+  - v20.12.0
+  - v18.20.0
 -->
 
 > Stability: 1 - Experimental
@@ -2215,9 +2218,9 @@ typedef enum {
 } napi_key_conversion;
 ```
 
-`napi_key_numbers_to_strings` will convert integer indices to
+`napi_key_numbers_to_strings` will convert integer indexes to
 strings. `napi_key_keep_numbers` will return numbers for integer
-indices.
+indexes.
 
 #### `napi_valuetype`
 
@@ -3088,7 +3091,9 @@ The JavaScript `string` type is described in
 #### `node_api_create_property_key_utf16`
 
 <!-- YAML
-added: v21.7.0
+added:
+  - v21.7.0
+  - v20.12.0
 -->
 
 > Stability: 1 - Experimental
@@ -6659,7 +6664,7 @@ the add-on's file name during loading.
 [`Number.MIN_SAFE_INTEGER`]: https://tc39.github.io/ecma262/#sec-number.min_safe_integer
 [`Worker`]: worker_threads.md#class-worker
 [`async_hooks.executionAsyncResource()`]: async_hooks.md#async_hooksexecutionasyncresource
-[`build_with_cmake`]: https://github.com/nodejs/node-addon-examples/tree/main/build_with_cmake
+[`build_with_cmake`]: https://github.com/nodejs/node-addon-examples/tree/main/src/8-tooling/build_with_cmake
 [`global`]: globals.md#global
 [`init` hooks]: async_hooks.md#initasyncid-type-triggerasyncid-resource
 [`napi_add_async_cleanup_hook`]: #napi_add_async_cleanup_hook

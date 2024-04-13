@@ -29,7 +29,7 @@
 #define NODE_VERSION_IS_LTS 0
 #define NODE_VERSION_LTS_CODENAME ""
 
-#define NODE_VERSION_IS_RELEASE 0
+#define NODE_VERSION_IS_RELEASE 1
 
 #ifndef NODE_STRINGIFY
 #define NODE_STRINGIFY(n) NODE_STRINGIFY_HELPER(n)
@@ -95,7 +95,7 @@
 #if defined(NODE_EMBEDDER_MODULE_VERSION)
 #define NODE_MODULE_VERSION NODE_EMBEDDER_MODULE_VERSION
 #else
-#define NODE_MODULE_VERSION 122
+#define NODE_MODULE_VERSION 124
 #endif
 
 // The NAPI_VERSION supported by the runtime. This is the inclusive range of
