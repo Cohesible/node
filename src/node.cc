@@ -349,6 +349,10 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
 
   CHECK(!env->isolate_data()->is_building_snapshot());
 
+  if (env->worker_context() != nullptr) {
+    return StartExecution(env, "internal/main/worker_thread");
+  }
+
 #ifndef DISABLE_SINGLE_EXECUTABLE_APPLICATION
   if (sea::IsSingleExecutable()) {
     sea::SeaResource sea = sea::FindSingleExecutableResource();
@@ -372,10 +376,6 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
     auto x = env->RunSnapshotDeserializeMain();
 
     return x;
-  }
-
-  if (env->worker_context() != nullptr) {
-    return StartExecution(env, "internal/main/worker_thread");
   }
 
   std::string first_argv;

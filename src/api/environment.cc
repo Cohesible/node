@@ -12,8 +12,6 @@
 #include "node_snapshot_builder.h"
 #include "node_v8_platform-inl.h"
 #include "node_wasm_web_api.h"
-#include "node_perf.h"
-#include <cstdio>
 #include "uv.h"
 #ifdef NODE_ENABLE_VTUNE_PROFILING
 #include "../deps/v8/src/third_party/vtune/v8-vtune.h"
@@ -357,9 +355,7 @@ Isolate* NewIsolate(Isolate::CreateParams* params,
   platform->RegisterIsolate(isolate, event_loop);
 
   SetIsolateCreateParamsForNode(params);
-  double _t = uv_hrtime();
   Isolate::Initialize(isolate, *params); // This takes the most amount of time to init the VM (~2ms warm)
-  // printf("Isolate::Initialize %f\n", (uv_hrtime() - _t) / 1e6);
 
   Isolate::Scope isolate_scope(isolate);
 
@@ -436,7 +432,6 @@ Environment* CreateEnvironment(
     EnvironmentFlags::Flags flags,
     ThreadId thread_id,
     std::unique_ptr<InspectorParentHandle> inspector_parent_handle) {
-  double _t = uv_hrtime();
   Isolate* isolate = isolate_data->isolate();
 
   Isolate::Scope isolate_scope(isolate);
@@ -459,8 +454,6 @@ Environment* CreateEnvironment(
                                      flags,
                                      thread_id);
   CHECK_NOT_NULL(env);
-  // printf(" - new Environment-> %f\n", (uv_hrtime() - _t) / 1e6);
-  _t = uv_hrtime();
 
   if (use_snapshot) {
     context = Context::FromSnapshot(isolate,
@@ -468,13 +461,10 @@ Environment* CreateEnvironment(
                                     {DeserializeNodeInternalFields, env})
                   .ToLocalChecked();
 
-  // printf(" - deserialize snapshot ctx -> %f\n", (uv_hrtime() - _t) / 1e6);
-
 
     CHECK(!context.IsEmpty());
     Context::Scope context_scope(context);
     
-    _t = uv_hrtime();
     if (InitializeContextRuntime(context).IsNothing()) {
       FreeEnvironment(env);
       return nullptr;
@@ -483,7 +473,6 @@ Environment* CreateEnvironment(
   }
 
 
-    _t = uv_hrtime();
   Context::Scope context_scope(context);
   env->InitializeMainContext(context, env_snapshot_info);
 
