@@ -146,6 +146,66 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_create_range_error(napi_env env,
                                                            napi_value code,
                                                            napi_value msg,
                                                            napi_value* result);
+
+// Fast calls
+typedef enum {
+    kVoid,
+    kBool,
+    kUint8,
+    kInt32,
+    kUint32,
+    kInt64,
+    kUint64,
+    kFloat32,
+    kFloat64,
+    kPointer,
+    kV8Value,
+    kSeqOneByteString,
+    kApiObject,
+    kAny,
+} c_type;
+
+typedef enum {
+    kScalar,
+    kIsSequence,
+    kIsTypedArray,
+    kIsArrayBuffer 
+} c_sequence_type;
+
+typedef enum {
+    kNone = 0,
+    kAllowSharedBit = 1 << 0,   // Must be an ArrayBuffer or TypedArray
+    kEnforceRangeBit = 1 << 1,  // T must be integral
+    kClampBit = 1 << 2,         // T must be integral
+    kIsRestrictedBit = 1 << 3,  // T must be float or double
+} c_type_flags;
+
+typedef struct {
+    c_type type;
+    c_sequence_type sequence_type;
+    c_type_flags flags;
+} c_type_def;
+
+typedef struct {
+    c_type_def return_type;
+    const c_type_def* args;
+    uint32_t arg_count;
+    bool uses_options;
+} c_function_def;
+
+typedef struct c_function__* c_function;
+
+NAPI_EXTERN napi_status NAPI_CDECL napi_create_cfunction(c_function_def* def,
+                                                         const void* cb,
+                                                         c_function* result);
+
+NAPI_EXTERN napi_status NAPI_CDECL napi_create_fastcall_function(napi_env env,
+                                                        const char* utf8name,
+                                                        size_t length,
+                                                        napi_callback slow_cb,
+                                                        c_function fast_cb,
+                                                        void* data,
+                                                        napi_value* result);
 #if NAPI_VERSION >= 9
 NAPI_EXTERN napi_status NAPI_CDECL node_api_create_syntax_error(
     napi_env env, napi_value code, napi_value msg, napi_value* result);
@@ -270,6 +330,20 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_get_array_length(napi_env env,
                                                          napi_value value,
                                                          uint32_t* result);
 
+enum napi_iteration_cb_result {
+    kException,
+    kBreak,
+    kContinue,
+};
+
+typedef napi_iteration_cb_result (*napi_iteration_cb)(uint32_t index,
+                                            napi_value element,
+                                            void* data);
+
+NAPI_EXTERN napi_status NAPI_CDECL napi_iterate(napi_env env,
+                                                napi_value object,
+                                                napi_iteration_cb cb,
+                                                void* data);
 // Methods to compare values
 NAPI_EXTERN napi_status NAPI_CDECL napi_strict_equals(napi_env env,
                                                       napi_value lhs,
