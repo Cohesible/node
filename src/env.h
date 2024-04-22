@@ -440,6 +440,7 @@ class TickInfo : public MemoryRetainer {
  public:
   inline AliasedUint8Array& fields();
   inline bool has_tick_scheduled() const;
+  inline bool has_immediate_tick_scheduled() const;
   inline bool has_rejection_to_warn() const;
 
   SET_MEMORY_INFO_NAME(TickInfo)
@@ -463,7 +464,7 @@ class TickInfo : public MemoryRetainer {
   friend class Environment;  // So we can call the constructor.
   explicit TickInfo(v8::Isolate* isolate, const SerializeInfo* info);
 
-  enum Fields { kHasTickScheduled = 0, kHasRejectionToWarn, kFieldsCount };
+  enum Fields { kHasTickScheduled = 0, kHasRejectionToWarn, kHasImmediateTickScheduled, kFieldsCount };
 
   AliasedUint8Array fields_;
 };
@@ -587,6 +588,7 @@ struct SnapshotData {
 void DefaultProcessExitHandlerInternal(Environment* env, ExitCode exit_code);
 v8::Maybe<ExitCode> SpinEventLoopInternal(Environment* env);
 v8::Maybe<ExitCode> EmitProcessExitInternal(Environment* env);
+v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8::Promise> promise);
 
 /**
  * Environment is a per-isolate data structure that represents an execution

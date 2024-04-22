@@ -129,7 +129,6 @@ class EnvironmentOptions : public Options {
   bool allow_child_process = false;
   bool allow_worker_threads = false;
   bool experimental_repl_await = true;
-  bool experimental_vm_modules = false;
   bool expose_internals = false;
   bool force_node_api_uncaught_exceptions_policy = false;
   bool frozen_intrinsics = false;

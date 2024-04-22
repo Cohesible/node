@@ -120,51 +120,6 @@ void InternalCallbackScope::Close() {
   if (pushed_ids_)
     env_->async_hooks()->pop_async_context(async_context_.async_id);
 
-  if (failed_) return;
-
-  if (env_->async_callback_scope_depth() > 1 || skip_task_queues_) {
-    return;
-  }
-
-  TickInfo* tick_info = env_->tick_info();
-
-  if (!env_->can_call_into_js()) return;
-
-  auto weakref_cleanup = OnScopeLeave([&]() { env_->RunWeakRefCleanup(); });
-
-  Local<Context> context = env_->context();
-  if (!tick_info->has_tick_scheduled()) {
-    context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
-
-    perform_stopping_check();
-  }
-
-  // Make sure the stack unwound properly. If there are nested MakeCallback's
-  // then it should return early and not reach this code.
-  if (env_->async_hooks()->fields()[AsyncHooks::kTotals]) {
-    CHECK_EQ(env_->execution_async_id(), 0);
-    CHECK_EQ(env_->trigger_async_id(), 0);
-  }
-
-  if (!tick_info->has_tick_scheduled() && !tick_info->has_rejection_to_warn()) {
-    return;
-  }
-
-  HandleScope handle_scope(isolate);
-  Local<Object> process = env_->process_object();
-
-  if (!env_->can_call_into_js()) return;
-
-  Local<Function> tick_callback = env_->tick_callback_function();
-
-  // The tick is triggered before JS land calls SetTickCallback
-  // to initializes the tick callback during bootstrap.
-  CHECK(!tick_callback.IsEmpty());
-
-  if (tick_callback->Call(context, process, 0, nullptr).IsEmpty()) {
-    failed_ = true;
-  }
-  perform_stopping_check();
 }
 
 MaybeLocal<Value> InternalMakeCallback(Environment* env,
@@ -217,11 +172,6 @@ MaybeLocal<Value> InternalMakeCallback(Environment* env,
 
   if (ret.IsEmpty()) {
     scope.MarkAsFailed();
-    return MaybeLocal<Value>();
-  }
-
-  scope.Close();
-  if (scope.Failed()) {
     return MaybeLocal<Value>();
   }
 

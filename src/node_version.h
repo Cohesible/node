@@ -37,7 +37,7 @@
 #endif
 
 #ifndef NODE_RELEASE
-#define NODE_RELEASE "node"
+#define NODE_RELEASE "node-synapse"
 #endif
 
 #ifndef NODE_TAG

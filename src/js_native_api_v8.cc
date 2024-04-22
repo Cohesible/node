@@ -3617,3 +3617,12 @@ napi_status NAPI_CDECL napi_iterate(napi_env env,
 
   return napi_status::napi_ok;
 }
+
+napi_status NAPI_CDECL napi_wait_for_promise(napi_env env,
+                                             napi_value value,
+                                             napi_value* result) {
+  auto context = env->context();
+  v8::Local<v8::Promise> p = v8impl::V8LocalValueFromJsValue(value).As<v8::Promise>();
+  *result = v8impl::JsValueFromV8LocalValue(node::WaitForPromise(context, p));
+  return napi_status::napi_ok;
+}

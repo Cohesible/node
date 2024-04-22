@@ -478,10 +478,6 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             &EnvironmentOptions::experimental_repl_await,
             kAllowedInEnvvar,
             true);
-  AddOption("--experimental-vm-modules",
-            "experimental ES Module support in vm module",
-            &EnvironmentOptions::experimental_vm_modules,
-            kAllowedInEnvvar);
   AddOption("--experimental-worker", "", NoOp{}, kAllowedInEnvvar);
   AddOption("--experimental-report", "", NoOp{}, kAllowedInEnvvar);
   AddOption(

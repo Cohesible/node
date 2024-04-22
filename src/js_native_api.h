@@ -565,6 +565,10 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_is_promise(napi_env env,
                                                    napi_value value,
                                                    bool* is_promise);
 
+NAPI_EXTERN napi_status NAPI_CDECL napi_wait_for_promise(napi_env env,
+                                                         napi_value value,
+                                                         napi_value* result);
+
 // Running a script
 NAPI_EXTERN napi_status NAPI_CDECL napi_run_script(napi_env env,
                                                    napi_value script,

@@ -37,14 +37,24 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     env->performance_state()->Mark(
         node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
     do {
-      if (env->is_stopping()) break;
-      uv_run(env->event_loop(), UV_RUN_DEFAULT);
+      uv_run(env->event_loop(), UV_RUN_NOWAIT);
       if (env->is_stopping()) break;
 
-      platform->DrainTasks(isolate);
+      TickInfo* tick_info = env->tick_info();
+
+      if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
+        HandleScope handle_scope(isolate);
+        Local<Function> tick_callback = env->tick_callback_function();
+        tick_callback->Call(env->context(), env->process_object(), 0, nullptr);
+      } else {
+        env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+      }
+
+      env->RunWeakRefCleanup();
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
+      platform->DrainTasks(isolate);
 
       if (EmitProcessBeforeExit(env).IsNothing())
         break;
@@ -87,6 +97,87 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     return Just(ExitCode::kUnsettledTopLevelAwait);
   }
   return Just(ExitCode::kNoFailure);
+}
+
+struct IdleData {
+  Isolate* isolate;
+  uv_loop_t* loop;
+  v8::Local<v8::Promise> data;
+  v8::Local<v8::Context> context;
+};
+
+v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8::Promise> promise) {
+    Environment* env = GetCurrentEnvironment(context);
+    CHECK_NOT_NULL(env);
+
+    promise->MarkAsHandled();
+
+    MultiIsolatePlatform* platform = GetMultiIsolatePlatform(env);
+    Isolate* isolate = env->isolate();
+
+    bool more;
+
+    uv_idle_t idle;
+
+    IdleData data;
+    data.isolate = isolate;
+    data.data = promise;
+    data.context = context;
+    data.loop = env->event_loop();
+    idle.data = &data;
+
+    uv_idle_init(env->event_loop(), &idle);
+    uv_idle_start(&idle, [](uv_idle_t* handle) {
+        IdleData* d = reinterpret_cast<IdleData*>(handle->data);
+        if (d->data->State() != v8::Promise::PromiseState::kPending) {
+          uv_stop(d->loop);
+        } else {
+          if (d->context->GetMicrotaskQueue()->IsRunningMicrotasks()) {
+            d->context->GetMicrotaskQueue()->RunMicrotasksReentrant(d->isolate);
+          } else {
+            d->context->GetMicrotaskQueue()->PerformCheckpoint(d->isolate);
+          }
+        }
+    });
+
+    do {
+      uv_run(env->event_loop(), UV_RUN_NOWAIT);
+      if (env->is_stopping()) break;
+
+      if (context->GetMicrotaskQueue()->IsRunningMicrotasks()) {
+        context->GetMicrotaskQueue()->RunMicrotasksReentrant(isolate);
+      } else {
+        context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+      }
+
+      if (promise->State() != v8::Promise::PromiseState::kPending) {
+        if (promise->State() == v8::Promise::PromiseState::kRejected) {
+          uv_idle_stop(&idle);
+          return isolate->ThrowException(promise->Result());
+        }
+        uv_idle_stop(&idle);
+        return promise->Result();
+      }
+
+      more = uv_loop_alive(env->event_loop());
+      if (more && !env->is_stopping()) continue;
+
+      platform->DrainTasks(isolate);
+
+      if (EmitProcessBeforeExit(env).IsNothing())
+        break;
+
+      more = uv_loop_alive(env->event_loop());
+    } while (more == true && !env->is_stopping());
+
+    CHECK(promise->State() != v8::Promise::PromiseState::kPending);
+
+    if (promise->State() == v8::Promise::PromiseState::kRejected) {
+      uv_idle_stop(&idle);
+      return isolate->ThrowException(promise->Result());
+    }
+    uv_idle_stop(&idle);
+    return promise->Result();
 }
 
 struct CommonEnvironmentSetup::Impl {

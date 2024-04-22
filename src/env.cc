@@ -1389,12 +1389,10 @@ void Environment::ToggleTimerRef(bool ref) {
   }
 }
 
-void Environment::RunTimers(uv_timer_t* handle) {
+void runTimers(void* data) {
+  uv_timer_t* handle = reinterpret_cast<uv_timer_t*>(data);
   Environment* env = Environment::from_timer_handle(handle);
   TRACE_EVENT0(TRACING_CATEGORY_NODE1(environment), "RunTimers");
-
-  if (!env->can_call_into_js())
-    return;
 
   HandleScope handle_scope(env->isolate());
   Context::Scope context_scope(env->context());
@@ -1405,6 +1403,7 @@ void Environment::RunTimers(uv_timer_t* handle) {
   Local<Function> cb = env->timers_callback_function();
   MaybeLocal<Value> ret;
   Local<Value> arg = env->GetNow();
+
   // This code will loop until all currently due timers will process. It is
   // impossible for us to end up in an infinite loop due to how the JS-side
   // is structured.
@@ -1449,6 +1448,14 @@ void Environment::RunTimers(uv_timer_t* handle) {
   }
 }
 
+void Environment::RunTimers(uv_timer_t* handle) {
+  Environment* env = Environment::from_timer_handle(handle);
+  env->context()->GetMicrotaskQueue()->EnqueueMicrotask(
+    env->isolate(),
+    runTimers,
+    handle
+  );
+}
 
 void Environment::CheckImmediate(uv_check_t* handle) {
   Environment* env = Environment::from_immediate_check_handle(handle);
