@@ -464,7 +464,7 @@ class TickInfo : public MemoryRetainer {
   friend class Environment;  // So we can call the constructor.
   explicit TickInfo(v8::Isolate* isolate, const SerializeInfo* info);
 
-  enum Fields { kHasTickScheduled = 0, kHasRejectionToWarn, kHasImmediateTickScheduled, kFieldsCount };
+  enum Fields { kHasTickScheduled = 0, kHasRejectionToWarn, kFieldsCount };
 
   AliasedUint8Array fields_;
 };

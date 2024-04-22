@@ -550,7 +550,7 @@ MaybeLocal<Value> LoadEnvironment(Environment* env,
     env->set_embedder_preload(std::move(preload));
   }
 
-  return StartExecution(env, cb); // This takes up the majority of the time
+  return StartExecution(env, cb);
 }
 
 MaybeLocal<Value> LoadEnvironment(Environment* env,

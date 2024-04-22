@@ -454,7 +454,6 @@
   V(snapshot_deserialize_main, v8::Function)                                   \
   V(source_map_cache_getter, v8::Function)                                     \
   V(tick_callback_function, v8::Function)                                      \
-  V(immediate_tick_callback_function, v8::Function)                            \
   V(timers_callback_function, v8::Function)                                    \
   V(tls_wrap_constructor_function, v8::Function)                               \
   V(trace_category_state_function, v8::Function)                               \

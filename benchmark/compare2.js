@@ -41,7 +41,7 @@ if (!cli.optional.old) {
 cli.optional.new ??= `./out/Release/node${process.platform === 'win32' ? '.exe' : ''}`
 
 const binaries = ['old', 'new'];
-const runs = cli.optional.runs ? parseInt(cli.optional.runs, 10) : 10;
+const runs = cli.optional.runs ? parseInt(cli.optional.runs, 10) : 3;
 const benchmarks = cli.benchmarks();
 
 if (benchmarks.length === 0) {

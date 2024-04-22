@@ -373,9 +373,7 @@ MaybeLocal<Value> StartExecution(Environment* env, StartExecutionCallback cb) {
   // move the pre-execution part into a different file that can be
   // reused when dealing with user-defined main functions.
   if (!env->snapshot_deserialize_main().IsEmpty()) {
-    auto x = env->RunSnapshotDeserializeMain();
-
-    return x;
+    return env->RunSnapshotDeserializeMain();
   }
 
   std::string first_argv;

@@ -27,7 +27,7 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
   Isolate* isolate = env->isolate();
   HandleScope handle_scope(isolate);
   Context::Scope context_scope(env->context());
-  SealHandleScope seal(isolate);
+  // SealHandleScope seal(isolate);
 
   if (env->is_stopping()) return Nothing<ExitCode>();
 
@@ -39,7 +39,6 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     do {
       uv_run(env->event_loop(), UV_RUN_NOWAIT);
       if (env->is_stopping()) break;
-
       TickInfo* tick_info = env->tick_info();
 
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
@@ -49,8 +48,6 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
       } else {
         env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
       }
-
-      env->RunWeakRefCleanup();
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
@@ -132,11 +129,7 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
         if (d->data->State() != v8::Promise::PromiseState::kPending) {
           uv_stop(d->loop);
         } else {
-          if (d->context->GetMicrotaskQueue()->IsRunningMicrotasks()) {
-            d->context->GetMicrotaskQueue()->RunMicrotasksReentrant(d->isolate);
-          } else {
             d->context->GetMicrotaskQueue()->PerformCheckpoint(d->isolate);
-          }
         }
     });
 
@@ -144,11 +137,7 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
       uv_run(env->event_loop(), UV_RUN_NOWAIT);
       if (env->is_stopping()) break;
 
-      if (context->GetMicrotaskQueue()->IsRunningMicrotasks()) {
-        context->GetMicrotaskQueue()->RunMicrotasksReentrant(isolate);
-      } else {
-        context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
-      }
+      context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
 
       if (promise->State() != v8::Promise::PromiseState::kPending) {
         if (promise->State() == v8::Promise::PromiseState::kRejected) {

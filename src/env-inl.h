@@ -205,10 +205,6 @@ inline bool TickInfo::has_tick_scheduled() const {
   return fields_[kHasTickScheduled] == 1;
 }
 
-inline bool TickInfo::has_immediate_tick_scheduled() const {
-  return fields_[kHasImmediateTickScheduled] == 1;
-}
-
 inline bool TickInfo::has_rejection_to_warn() const {
   return fields_[kHasRejectionToWarn] == 1;
 }

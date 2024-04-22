@@ -145,9 +145,7 @@ static void RunMicrotasks(const FunctionCallbackInfo<Value>& args) {
 static void SetTickCallback(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   CHECK(args[0]->IsFunction());
-  CHECK(args[1]->IsFunction());
   env->set_tick_callback_function(args[0].As<Function>());
-  env->set_immediate_tick_callback_function(args[1].As<Function>());
 }
 
 static void SetPromiseRejectCallback(
