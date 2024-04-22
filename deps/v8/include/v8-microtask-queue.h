@@ -96,6 +96,8 @@ class V8_EXPORT MicrotaskQueue {
    * kRunMicrotasks.
    */
   virtual int GetMicrotasksScopeDepth() const = 0;
+  virtual int Size() const = 0;
+  virtual int RunMicrotasksReentrant(Isolate* isolate) = 0;
 
   MicrotaskQueue(const MicrotaskQueue&) = delete;
   MicrotaskQueue& operator=(const MicrotaskQueue&) = delete;

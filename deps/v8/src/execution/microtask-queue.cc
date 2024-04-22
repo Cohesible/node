@@ -199,6 +199,65 @@ int MicrotaskQueue::RunMicrotasks(Isolate* isolate) {
   return processed_microtask_count;
 }
 
+int MicrotaskQueue::Size() const {
+  return size();
+}
+
+int MicrotaskQueue::RunMicrotasksReentrant(v8::Isolate* i) {
+  auto _is_running_microtasks_ = is_running_microtasks_;
+  is_running_microtasks_ = true;
+  auto isolate = reinterpret_cast<v8::internal::Isolate*>(i);
+  v8::Isolate::SuppressMicrotaskExecutionScope suppress(i, this);
+
+  if (!size()) {
+    OnCompleted(isolate);
+    is_running_microtasks_ = _is_running_microtasks_;
+    return 0;
+  }
+
+  // We should not enter V8 if it's marked for termination.
+  DCHECK_IMPLIES(v8_flags.strict_termination_checks,
+                 !isolate->is_execution_terminating());
+
+  intptr_t base_count = finished_microtask_count_;
+  HandleScope handle_scope(isolate);
+  MaybeHandle<Object> maybe_result;
+
+  int processed_microtask_count;
+  {
+    HandleScopeImplementer::EnteredContextRewindScope rewind_scope(
+        isolate->handle_scope_implementer());
+    TRACE_EVENT_BEGIN0("v8.execute", "RunMicrotasks");
+    {
+      TRACE_EVENT_CALL_STATS_SCOPED(isolate, "v8", "V8.RunMicrotasks");
+      maybe_result = Execution::TryRunMicrotasks(isolate, this);
+      processed_microtask_count =
+          static_cast<int>(finished_microtask_count_ - base_count);
+    }
+    TRACE_EVENT_END1("v8.execute", "RunMicrotasks", "microtask_count",
+                     processed_microtask_count);
+  }
+
+  if (isolate->is_execution_terminating()) {
+    DCHECK(isolate->has_exception());
+    DCHECK(maybe_result.is_null());
+    delete[] ring_buffer_;
+    ring_buffer_ = nullptr;
+    capacity_ = 0;
+    size_ = 0;
+    start_ = 0;
+    isolate->OnTerminationDuringRunMicrotasks();
+    OnCompleted(isolate);
+    is_running_microtasks_ = _is_running_microtasks_;
+    return -1;
+  }
+  DCHECK_EQ(0, size());
+  OnCompleted(isolate);
+  is_running_microtasks_ = _is_running_microtasks_;
+
+  return processed_microtask_count;
+}
+
 void MicrotaskQueue::IterateMicrotasks(RootVisitor* visitor) {
   if (size_) {
     // Iterate pending Microtasks as root objects to avoid the write barrier for

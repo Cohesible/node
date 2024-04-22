@@ -64,6 +64,8 @@ class V8_EXPORT_PRIVATE MicrotaskQueue final : public v8::MicrotaskQueue {
   // Returns -1 if the execution is terminating, otherwise, returns the number
   // of microtasks that ran in this round.
   int RunMicrotasks(Isolate* isolate);
+  int RunMicrotasksReentrant(v8::Isolate* isolate) override;
+  int Size() const override;
 
   // Iterate all pending Microtasks in this queue as strong roots, so that
   // builtins can update the queue directly without the write barrier.
