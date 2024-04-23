@@ -706,6 +706,14 @@ bool Environment::source_maps_enabled() const {
   return source_maps_enabled_;
 }
 
+void Environment::set_should_run_timers(bool val) {
+  should_run_timers_ = val;
+}
+
+bool Environment::should_run_timers() const {
+  return should_run_timers_;
+}
+
 inline uint64_t Environment::thread_id() const {
   return thread_id_;
 }

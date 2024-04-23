@@ -483,10 +483,6 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
   AddOption(
       "--experimental-wasi-unstable-preview1", "", NoOp{}, kAllowedInEnvvar);
   AddOption("--expose-internals", "", &EnvironmentOptions::expose_internals);
-  AddOption("--frozen-intrinsics",
-            "experimental frozen intrinsics support",
-            &EnvironmentOptions::frozen_intrinsics,
-            kAllowedInEnvvar);
   AddOption("--heapsnapshot-signal",
             "Generate heap snapshot on specified signal",
             &EnvironmentOptions::heap_snapshot_signal,

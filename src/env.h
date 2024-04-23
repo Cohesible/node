@@ -696,6 +696,8 @@ class Environment : public MemoryRetainer {
 
   void StartProfilerIdleNotifier();
 
+  void RunTimers();
+
   inline v8::Isolate* isolate() const;
   inline uv_loop_t* event_loop() const;
   void TryLoadAddon(const char* filename,
@@ -826,6 +828,9 @@ class Environment : public MemoryRetainer {
 
   inline void set_source_maps_enabled(bool on);
   inline bool source_maps_enabled() const;
+
+  inline bool should_run_timers() const;
+  inline void set_should_run_timers(bool val);
 
   inline void ThrowError(const char* errmsg);
   inline void ThrowTypeError(const char* errmsg);
@@ -1084,6 +1089,7 @@ class Environment : public MemoryRetainer {
   bool emit_err_name_warning_ = true;
   bool emit_filehandle_warning_ = true;
   bool source_maps_enabled_ = false;
+  bool should_run_timers_ = false;
 
   size_t async_callback_scope_depth_ = 0;
   std::vector<double> destroy_async_id_list_;
@@ -1179,7 +1185,7 @@ class Environment : public MemoryRetainer {
   std::list<node_module> extra_linked_bindings_;
   Mutex extra_linked_bindings_mutex_;
 
-  static void RunTimers(uv_timer_t* handle);
+  static void EnqueueTimers(uv_timer_t* handle);
 
   struct ExitCallback {
     void (*cb_)(void* arg);

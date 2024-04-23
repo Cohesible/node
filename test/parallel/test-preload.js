@@ -64,19 +64,6 @@ common.spawnPromisified(nodeBinary, [...preloadOption(fixtureA), '-e', 'console.
   }
 ));
 
-// Test that preload can be used with --frozen-intrinsics
-common.spawnPromisified(nodeBinary, ['--frozen-intrinsics', ...preloadOption(fixtureE), fixtureF]).then(common.mustCall(
-  ({ stdout }) => {
-    assert.strictEqual(stdout, 'smoosh\n');
-  }
-));
-common.spawnPromisified(nodeBinary, ['--frozen-intrinsics', ...preloadOption(fixtureE), fixtureG, fixtureF])
-  .then(common.mustCall(
-    ({ stdout }) => {
-      assert.strictEqual(stdout, 'smoosh\n');
-    }
-  ));
-
 // Test that preload can be used with stdin
 const stdinProc = childProcess.spawn(
   nodeBinary,

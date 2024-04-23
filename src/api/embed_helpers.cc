@@ -37,8 +37,13 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     env->performance_state()->Mark(
         node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
     do {
-      uv_run(env->event_loop(), UV_RUN_NOWAIT);
+      more = uv_run(env->event_loop(), UV_RUN_NOWAIT) > 0;
       if (env->is_stopping()) break;
+
+      if (env->should_run_timers()) {
+        env->RunTimers();
+      }
+
       TickInfo* tick_info = env->tick_info();
 
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
@@ -48,6 +53,8 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
       } else {
         env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
       }
+
+      if (more) continue;
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
@@ -114,37 +121,20 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
 
     bool more;
 
-    uv_idle_t idle;
-
-    IdleData data;
-    data.isolate = isolate;
-    data.data = promise;
-    data.context = context;
-    data.loop = env->event_loop();
-    idle.data = &data;
-
-    uv_idle_init(env->event_loop(), &idle);
-    uv_idle_start(&idle, [](uv_idle_t* handle) {
-        IdleData* d = reinterpret_cast<IdleData*>(handle->data);
-        if (d->data->State() != v8::Promise::PromiseState::kPending) {
-          uv_stop(d->loop);
-        } else {
-            d->context->GetMicrotaskQueue()->PerformCheckpoint(d->isolate);
-        }
-    });
-
     do {
       uv_run(env->event_loop(), UV_RUN_NOWAIT);
       if (env->is_stopping()) break;
+
+      if (env->should_run_timers()) {
+        env->RunTimers();
+      }
 
       context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
 
       if (promise->State() != v8::Promise::PromiseState::kPending) {
         if (promise->State() == v8::Promise::PromiseState::kRejected) {
-          uv_idle_stop(&idle);
           return isolate->ThrowException(promise->Result());
         }
-        uv_idle_stop(&idle);
         return promise->Result();
       }
 
@@ -162,10 +152,8 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
     CHECK(promise->State() != v8::Promise::PromiseState::kPending);
 
     if (promise->State() == v8::Promise::PromiseState::kRejected) {
-      uv_idle_stop(&idle);
       return isolate->ThrowException(promise->Result());
     }
-    uv_idle_stop(&idle);
     return promise->Result();
 }
 
