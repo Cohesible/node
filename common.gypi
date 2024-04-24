@@ -189,7 +189,7 @@
             }],
           ],
         },
-        'cflags': [ '-O3' ],
+        'cflags': [ '-O3', '-fvisibility=hidden', '-fvisibility-inlines-hidden' ],
         'conditions': [
           ['enable_lto=="true"', {
             'cflags': ['<(lto)'],

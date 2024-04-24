@@ -67,6 +67,19 @@ struct CodeCacheInfo {
   BuiltinCodeCacheData data;
 };
 
+struct BuiltinEntry {
+  const char* name;
+  size_t name_len;
+  const char* data;
+  size_t data_len;
+  bool two_byte;
+};
+
+struct Builtins {
+  const BuiltinEntry* entries;
+  size_t entries_len;
+};
+
 using BuiltinSourceMap = std::map<std::string, UnionBytes>;
 using BuiltinCodeCacheMap =
     std::unordered_map<std::string, BuiltinCodeCacheData>;
@@ -180,6 +193,7 @@ class NODE_EXTERN_PRIVATE BuiltinLoader {
   void AddExternalizedBuiltin(const char* id, const char* filename);
 
   ThreadsafeCopyOnWrite<BuiltinSourceMap> source_;
+  Builtins builtins_;
 
   const UnionBytes config_;
 

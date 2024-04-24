@@ -12,13 +12,13 @@ async function processLineByLine_SymbolAsyncError(filename) {
   });
   // eslint-disable-next-line no-unused-vars
   for await (const line of rl) {
-    /* check SymbolAsyncIterator `errorListener` */
+    /* check Symbol.asyncIterator `errorListener` */
   }
 }
 
 const f = path.join(__dirname, 'file.txt');
 
-// catch-able SymbolAsyncIterator `errorListener` error
+// catch-able Symbol.asyncIterator `errorListener` error
 processLineByLine_SymbolAsyncError(f).catch(common.expectsError({
   code: 'ENOENT',
   message: `ENOENT: no such file or directory, open '${f}'`

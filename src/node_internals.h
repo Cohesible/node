@@ -338,6 +338,7 @@ class InitializationResultImpl final : public InitializationResult {
   const std::vector<std::string>& exec_args() const { return exec_args_; }
   const std::vector<std::string>& errors() const { return errors_; }
   MultiIsolatePlatform* platform() const { return platform_; }
+  void* instance() const { return instance_; }
 
   ExitCode exit_code_ = ExitCode::kNoFailure;
   std::vector<std::string> args_;
@@ -345,6 +346,7 @@ class InitializationResultImpl final : public InitializationResult {
   std::vector<std::string> errors_;
   bool early_return_ = false;
   MultiIsolatePlatform* platform_ = nullptr;
+  void* instance_ = nullptr;
 };
 
 void SetIsolateErrorHandlers(v8::Isolate* isolate, const IsolateSettings& s);

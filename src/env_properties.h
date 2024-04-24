@@ -55,7 +55,8 @@
   V(vm_dynamic_import_main_context_default,                                    \
     "vm_dynamic_import_main_context_default")                                  \
   V(vm_dynamic_import_missing_flag, "vm_dynamic_import_missing_flag")          \
-  V(vm_dynamic_import_no_callback, "vm_dynamic_import_no_callback")
+  V(vm_dynamic_import_no_callback, "vm_dynamic_import_no_callback")            \
+  V(vm_dynamic_import_use_filename, "vm_dynamic_import_use_filename")
 
 // Strings are per-isolate primitives but Environment proxies them
 // for the sake of convenience.  Strings should be ASCII-only.

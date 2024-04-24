@@ -1,6 +1,7 @@
 name: Build Windows
 
 on:
+  workflow_dispatch:
   pull_request:
     paths-ignore:
       - README.md
@@ -50,4 +51,9 @@ jobs:
       - name: Environment Information
         run: npx envinfo
       - name: Build
-        run: ./vcbuild.bat
+        run: ./vcbuild.bat build-synapse-release
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-binary
+          path: out/Release/node.exe

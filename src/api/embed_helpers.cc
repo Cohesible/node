@@ -27,7 +27,7 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
   Isolate* isolate = env->isolate();
   HandleScope handle_scope(isolate);
   Context::Scope context_scope(env->context());
-  SealHandleScope seal(isolate);
+  // SealHandleScope seal(isolate);
 
   if (env->is_stopping()) return Nothing<ExitCode>();
 
@@ -37,14 +37,28 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     env->performance_state()->Mark(
         node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
     do {
-      if (env->is_stopping()) break;
-      uv_run(env->event_loop(), UV_RUN_DEFAULT);
+      more = uv_run(env->event_loop(), UV_RUN_NOWAIT) > 0;
       if (env->is_stopping()) break;
 
-      platform->DrainTasks(isolate);
+      if (env->should_run_timers()) {
+        env->RunTimers();
+      }
+
+      TickInfo* tick_info = env->tick_info();
+
+      if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
+        HandleScope handle_scope(isolate);
+        Local<Function> tick_callback = env->tick_callback_function();
+        tick_callback->Call(env->context(), env->process_object(), 0, nullptr);
+      } else {
+        env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+      }
+
+      if (more) continue;
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
+      platform->DrainTasks(isolate);
 
       if (EmitProcessBeforeExit(env).IsNothing())
         break;
@@ -87,6 +101,60 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     return Just(ExitCode::kUnsettledTopLevelAwait);
   }
   return Just(ExitCode::kNoFailure);
+}
+
+struct IdleData {
+  Isolate* isolate;
+  uv_loop_t* loop;
+  v8::Local<v8::Promise> data;
+  v8::Local<v8::Context> context;
+};
+
+v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8::Promise> promise) {
+    Environment* env = GetCurrentEnvironment(context);
+    CHECK_NOT_NULL(env);
+
+    promise->MarkAsHandled();
+
+    MultiIsolatePlatform* platform = GetMultiIsolatePlatform(env);
+    Isolate* isolate = env->isolate();
+
+    bool more;
+
+    do {
+      uv_run(env->event_loop(), UV_RUN_NOWAIT);
+      if (env->is_stopping()) break;
+
+      if (env->should_run_timers()) {
+        env->RunTimers();
+      }
+
+      context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+
+      if (promise->State() != v8::Promise::PromiseState::kPending) {
+        if (promise->State() == v8::Promise::PromiseState::kRejected) {
+          return isolate->ThrowException(promise->Result());
+        }
+        return promise->Result();
+      }
+
+      more = uv_loop_alive(env->event_loop());
+      if (more && !env->is_stopping()) continue;
+
+      platform->DrainTasks(isolate);
+
+      if (EmitProcessBeforeExit(env).IsNothing())
+        break;
+
+      more = uv_loop_alive(env->event_loop());
+    } while (more == true && !env->is_stopping());
+
+    CHECK(promise->State() != v8::Promise::PromiseState::kPending);
+
+    if (promise->State() == v8::Promise::PromiseState::kRejected) {
+      return isolate->ThrowException(promise->Result());
+    }
+    return promise->Result();
 }
 
 struct CommonEnvironmentSetup::Impl {

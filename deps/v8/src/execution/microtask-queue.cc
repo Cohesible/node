@@ -112,7 +112,6 @@ void MicrotaskQueue::EnqueueMicrotask(Tagged<Microtask> microtask) {
 }
 
 void MicrotaskQueue::PerformCheckpointInternal(v8::Isolate* v8_isolate) {
-  DCHECK(ShouldPerfomCheckpoint());
   base::Optional<MicrotasksScope> microtasks_scope;
   if (microtasks_policy_ == v8::MicrotasksPolicy::kScoped) {
     // If we're using microtask scopes to schedule microtask execution, V8
@@ -133,17 +132,17 @@ namespace {
 class SetIsRunningMicrotasks {
  public:
   explicit SetIsRunningMicrotasks(bool* flag) : flag_(flag) {
-    DCHECK(!*flag_);
+    previous_ = *flag_;
     *flag_ = true;
   }
 
   ~SetIsRunningMicrotasks() {
-    DCHECK(*flag_);
-    *flag_ = false;
+    *flag_ = previous_;
   }
 
  private:
   bool* flag_;
+  bool previous_;
 };
 
 }  // namespace

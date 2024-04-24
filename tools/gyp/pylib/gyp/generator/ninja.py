@@ -2339,6 +2339,8 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params, config_name
     cxx = GetEnvironFallback(["CXX_target", "CXX"], cxx)
     master_ninja.variable("cxx", CommandWithWrapper("CXX", wrappers, cxx))
 
+    master_ninja.variable("libtool", GetEnvironFallback(["LIBTOOL"], "libtool"))
+
     if flavor == "win":
         master_ninja.variable("ld", ld)
         master_ninja.variable("idl", "midl.exe")
@@ -2593,7 +2595,7 @@ def GenerateOutputForConfig(target_list, target_dicts, data, params, config_name
             "alink",
             description="LIBTOOL-STATIC $out, POSTBUILDS",
             command="rm -f $out && "
-            "./gyp-mac-tool filter-libtool libtool $libtool_flags "
+            "./gyp-mac-tool filter-libtool $libtool $libtool_flags "
             "-static -o $out $in"
             "$postbuilds",
         )

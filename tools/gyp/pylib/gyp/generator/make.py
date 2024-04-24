@@ -207,7 +207,7 @@ cmd_solink_module = $(LINK.$(TOOLSET)) -o $@ -shared $(GYP_LDFLAGS) $(LDFLAGS.$(
 
 LINK_COMMANDS_MAC = """\
 quiet_cmd_alink = LIBTOOL-STATIC $@
-cmd_alink = rm -f $@ && ./gyp-mac-tool filter-libtool libtool $(GYP_LIBTOOLFLAGS) -static -o $@ $(filter %.o,$^)
+cmd_alink = rm -f $@ && ./gyp-mac-tool filter-libtool $(GYP_LIBTOOL) $(GYP_LIBTOOLFLAGS) -static -o $@ $(filter %.o,$^)
 
 quiet_cmd_link = LINK($(TOOLSET)) $@
 cmd_link = $(LINK.$(TOOLSET)) $(GYP_LDFLAGS) $(LDFLAGS.$(TOOLSET)) -o "$@" $(LD_INPUTS) $(LIBS)
@@ -1747,6 +1747,13 @@ $(obj).$(TOOLSET)/$(TARGET)/%%.o: $(obj)/%%%s FORCE_DO_CMD
             self.WriteLn("%s: LIBS := $(LIBS)" % QuoteSpaces(self.output_binary))
 
             if self.flavor == "mac":
+                self.WriteLn(
+                    "%s: GYP_LIBTOOL := %s",
+                    % (
+                        QuoteSpaces(self.output_binary), 
+                        QuoteSpaces(GetEnvironFallback(("LIBTOOL"), "libtool"))
+                    )
+                )
                 self.WriteLn(
                     "%s: GYP_LIBTOOLFLAGS := $(LIBTOOLFLAGS_$(BUILDTYPE))"
                     % QuoteSpaces(self.output_binary)

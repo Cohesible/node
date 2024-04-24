@@ -506,11 +506,22 @@ class FunctionCallbackWrapper : public CallbackWrapperBase {
       napi_callback cb,
       void* cb_data,
       v8::Local<v8::FunctionTemplate>* result,
-      v8::Local<v8::Signature> sig = v8::Local<v8::Signature>()) {
+      v8::Local<v8::Signature> sig = v8::Local<v8::Signature>(),
+      v8::CFunction* c_function = nullptr) {
     v8::Local<v8::Value> cbdata = v8impl::CallbackBundle::New(env, cb, cb_data);
     RETURN_STATUS_IF_FALSE(env, !cbdata.IsEmpty(), napi_generic_failure);
-
-    *result = v8::FunctionTemplate::New(env->isolate, Invoke, cbdata, sig);
+    if (c_function == nullptr) {
+      *result = v8::FunctionTemplate::New(env->isolate, Invoke, cbdata, sig);
+    } else {
+      *result = v8::FunctionTemplate::New(env->isolate, 
+                                          Invoke, 
+                                          cbdata, 
+                                          sig, 
+                                          c_function->ArgumentCount() - 1, // Minus 1 for receiver
+                                          v8::ConstructorBehavior::kThrow, 
+                                          v8::SideEffectType::kHasSideEffect, 
+                                          const_cast<v8::CFunction*>(c_function));
+    }
     return napi_clear_last_error(env);
   }
 
@@ -3530,4 +3541,88 @@ napi_status NAPI_CDECL napi_is_detached_arraybuffer(napi_env env,
       value->IsArrayBuffer() && value.As<v8::ArrayBuffer>()->WasDetached();
 
   return napi_clear_last_error(env);
+}
+
+v8::CTypeInfo convertToV8Type(c_type_def def) {
+  return v8::CTypeInfo((v8::CTypeInfo::Type)def.type,
+                       (v8::CTypeInfo::SequenceType)def.sequence_type, 
+                       (v8::CTypeInfo::Flags)def.flags);
+}
+
+// leaks memory
+napi_status NAPI_CDECL napi_create_cfunction(c_function_def* def,
+                                             const void* cb,
+                                             c_function* result) {
+  auto count = def->arg_count;
+  auto args = new std::vector<v8::CTypeInfo>();
+  for (uint32_t i = 0; i < count; i++) {
+    args->emplace_back(convertToV8Type(def->args[i]));
+  };
+
+  auto d = new v8::CFunctionInfo(convertToV8Type(def->return_type), count, args->data());
+  auto f = new v8::CFunction(cb, d);
+  *result = reinterpret_cast<c_function>(f);
+
+  return napi_status::napi_ok;
+}
+
+napi_status NAPI_CDECL napi_create_fastcall_function(napi_env env,
+                                                     const char* utf8name,
+                                                     size_t length,
+                                                     napi_callback slow_cb,
+                                                     c_function fast_cb,
+                                                     void* data,
+                                                     napi_value* result) {
+  NAPI_PREAMBLE(env);
+  CHECK_ARG(env, result);
+  CHECK_ARG(env, slow_cb);
+
+  auto f = reinterpret_cast<v8::CFunction*>(fast_cb);
+
+  v8::Local<v8::Function> return_value;
+  v8::EscapableHandleScope scope(env->isolate);
+  v8::Local<v8::FunctionTemplate> fn;
+  STATUS_CALL(v8impl::FunctionCallbackWrapper::NewTemplate(
+      env, slow_cb, data, &fn, v8::Local<v8::Signature>(), f));
+  return_value = scope.Escape(fn->GetFunction(env->context()).ToLocalChecked());
+
+  if (utf8name != nullptr) {
+    v8::Local<v8::String> name_string;
+    CHECK_NEW_FROM_UTF8_LEN(env, name_string, utf8name, length);
+    return_value->SetName(name_string);
+  }
+
+  *result = v8impl::JsValueFromV8LocalValue(return_value);
+
+  return GET_RETURN_STATUS(env);
+}
+
+struct iterate_wrap {
+  napi_iteration_cb cb;
+  void* data;
+};
+
+napi_status NAPI_CDECL napi_iterate(napi_env env,
+                                    napi_value object,
+                                    napi_iteration_cb cb,
+                                    void* data) {
+  NAPI_PREAMBLE(env);
+
+  auto wrap = iterate_wrap { cb, data };
+  v8::Local<v8::Array> arr = v8impl::V8LocalValueFromJsValue(object).As<v8::Array>();
+  arr->Iterate(env->context(), [](uint32_t index, v8::Local<v8::Value> element, void* data){
+    auto wrap = reinterpret_cast<iterate_wrap*>(data);
+    return (v8::Array::CallbackResult)wrap->cb(index, v8impl::JsValueFromV8LocalValue(element), wrap->data);
+  }, &wrap);
+
+  return napi_status::napi_ok;
+}
+
+napi_status NAPI_CDECL napi_wait_for_promise(napi_env env,
+                                             napi_value value,
+                                             napi_value* result) {
+  auto context = env->context();
+  v8::Local<v8::Promise> p = v8impl::V8LocalValueFromJsValue(value).As<v8::Promise>();
+  *result = v8impl::JsValueFromV8LocalValue(node::WaitForPromise(context, p));
+  return napi_status::napi_ok;
 }

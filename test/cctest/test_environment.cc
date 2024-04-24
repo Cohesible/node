@@ -76,9 +76,6 @@ TEST_F(EnvironmentTest, EnvironmentWithESMLoader) {
   Argv argv;
   Env env {handle_scope, argv};
 
-  node::Environment* envi = *env;
-  envi->options()->experimental_vm_modules = true;
-
   SetProcessExitHandler(*env, [&](node::Environment* env_, int exit_code) {
     EXPECT_EQ(*env, env_);
     EXPECT_EQ(exit_code, 0);
@@ -136,9 +133,6 @@ TEST_F(EnvironmentTest, EnvironmentWithNoESMLoader) {
   const v8::HandleScope handle_scope(isolate_);
   Argv argv;
   Env env {handle_scope, argv, node::EnvironmentFlags::kNoRegisterESMLoader};
-
-  node::Environment* envi = *env;
-  envi->options()->experimental_vm_modules = true;
 
   SetProcessExitHandler(*env, [&](node::Environment* env_, int exit_code) {
     EXPECT_EQ(*env, env_);
@@ -613,6 +607,7 @@ TEST_F(EnvironmentTest, SetImmediateMicrotasks) {
       }, &called);
     }, node::CallbackFlags::kRefed);
     uv_run(&current_loop, UV_RUN_DEFAULT);
+    isolate_->PerformMicrotaskCheckpoint();
   }
 
   EXPECT_EQ(called, 1);
@@ -734,6 +729,7 @@ TEST_F(EnvironmentTest, NestedMicrotaskQueue) {
       "}, 10);\n"
       "mustCall(6);\n"
       "return eval;\n").ToLocalChecked().As<v8::Function>();
+  queue->PerformCheckpoint(isolate_);
   EXPECT_EQ(callback_calls, (IntVec { 1, 3, 6, 2, 4 }));
   v8::Local<v8::Value> queue_microtask_code = v8::String::NewFromUtf8Literal(
       isolate_, "queueMicrotask(() => mustCall(7));");

@@ -633,12 +633,16 @@ class XcodeSettings:
         if self._Test("GCC_WARN_ABOUT_MISSING_NEWLINE", "YES", default="NO"):
             cflags.append("-Wnewline-eof")
 
+        cflags.append('-fvisibility=hidden')
+        cflags.append('-fvisibility-inlines-hidden')
+        cflags.append('-fvisibility-inlines-hidden-static-local-var')
+
         # In Xcode, this is only activated when GCC_COMPILER_VERSION is clang or
         # llvm-gcc. It also requires a fairly recent libtool, and
         # if the system clang isn't used, DYLD_LIBRARY_PATH needs to contain the
         # path to the libLTO.dylib that matches the used clang.
         if self._Test("LLVM_LTO", "YES", default="NO"):
-            cflags.append("-flto")
+            cflags.append("-flto=thin")
 
         self._AppendPlatformVersionMinFlags(cflags)
 
@@ -722,6 +726,10 @@ class XcodeSettings:
             cflags_cc.append("-std=%s" % clang_cxx_language_standard)
 
         self._Appendf(cflags_cc, "CLANG_CXX_LIBRARY", "-stdlib=%s")
+
+        cflags_cc.append('-fvisibility=hidden')
+        cflags_cc.append('-fvisibility-inlines-hidden')
+        cflags_cc.append('-fvisibility-inlines-hidden-static-local-var')
 
         if self._Test("GCC_ENABLE_CPP_RTTI", "NO", default="YES"):
             cflags_cc.append("-fno-rtti")

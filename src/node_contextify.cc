@@ -32,6 +32,8 @@
 #include "node_snapshot_builder.h"
 #include "node_watchdog.h"
 #include "util-inl.h"
+#include "node_perf.h"
+#include <cstdio>
 
 namespace node {
 namespace contextify {

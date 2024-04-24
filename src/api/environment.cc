@@ -355,7 +355,7 @@ Isolate* NewIsolate(Isolate::CreateParams* params,
   platform->RegisterIsolate(isolate, event_loop);
 
   SetIsolateCreateParamsForNode(params);
-  Isolate::Initialize(isolate, *params);
+  Isolate::Initialize(isolate, *params); // This takes the most amount of time to init the VM (~2ms warm)
 
   Isolate::Scope isolate_scope(isolate);
 
@@ -461,9 +461,10 @@ Environment* CreateEnvironment(
                                     {DeserializeNodeInternalFields, env})
                   .ToLocalChecked();
 
+
     CHECK(!context.IsEmpty());
     Context::Scope context_scope(context);
-
+    
     if (InitializeContextRuntime(context).IsNothing()) {
       FreeEnvironment(env);
       return nullptr;
@@ -471,8 +472,10 @@ Environment* CreateEnvironment(
     SetIsolateErrorHandlers(isolate, {});
   }
 
+
   Context::Scope context_scope(context);
   env->InitializeMainContext(context, env_snapshot_info);
+
 
 #if HAVE_INSPECTOR
   if (env->should_create_inspector()) {
@@ -547,7 +550,20 @@ MaybeLocal<Value> LoadEnvironment(Environment* env,
     env->set_embedder_preload(std::move(preload));
   }
 
-  return StartExecution(env, cb);
+  auto result = StartExecution(env, cb);
+  if (env->can_call_into_js()) {
+      TickInfo* tick_info = env->tick_info();
+
+      if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
+        HandleScope handle_scope(env->isolate());
+        Local<Function> tick_callback = env->tick_callback_function();
+        tick_callback->Call(env->context(), env->process_object(), 0, nullptr);
+      } else {
+        env->context()->GetMicrotaskQueue()->PerformCheckpoint(env->isolate());
+      }
+  }
+
+  return result;
 }
 
 MaybeLocal<Value> LoadEnvironment(Environment* env,

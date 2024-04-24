@@ -1376,7 +1376,7 @@ void Environment::RequestInterruptFromV8() {
 
 void Environment::ScheduleTimer(int64_t duration_ms) {
   if (started_cleanup_) return;
-  uv_timer_start(timer_handle(), RunTimers, duration_ms, 0);
+  uv_timer_start(timer_handle(), EnqueueTimers, duration_ms, 0);
 }
 
 void Environment::ToggleTimerRef(bool ref) {
@@ -1389,30 +1389,27 @@ void Environment::ToggleTimerRef(bool ref) {
   }
 }
 
-void Environment::RunTimers(uv_timer_t* handle) {
-  Environment* env = Environment::from_timer_handle(handle);
+void Environment::RunTimers() {
   TRACE_EVENT0(TRACING_CATEGORY_NODE1(environment), "RunTimers");
 
-  if (!env->can_call_into_js())
-    return;
+  HandleScope handle_scope(isolate());
+  Context::Scope context_scope(context());
 
-  HandleScope handle_scope(env->isolate());
-  Context::Scope context_scope(env->context());
+  Local<Object> process = process_object();
+  InternalCallbackScope scope(this, process, {0, 0});
 
-  Local<Object> process = env->process_object();
-  InternalCallbackScope scope(env, process, {0, 0});
-
-  Local<Function> cb = env->timers_callback_function();
+  Local<Function> cb = timers_callback_function();
   MaybeLocal<Value> ret;
-  Local<Value> arg = env->GetNow();
+  Local<Value> arg = GetNow();
+
   // This code will loop until all currently due timers will process. It is
   // impossible for us to end up in an infinite loop due to how the JS-side
   // is structured.
   do {
-    TryCatchScope try_catch(env);
+    TryCatchScope try_catch(this);
     try_catch.SetVerbose(true);
-    ret = cb->Call(env->context(), process, 1, &arg);
-  } while (ret.IsEmpty() && env->can_call_into_js());
+    ret = cb->Call(context(), process, 1, &arg);
+  } while (ret.IsEmpty() && can_call_into_js());
 
   // NOTE(apapirovski): If it ever becomes possible that `call_into_js` above
   // is reset back to `true` after being previously set to `false` then this
@@ -1430,15 +1427,14 @@ void Environment::RunTimers(uv_timer_t* handle) {
   // 3. If it's < 0, the absolute value represents the next timer's expiry
   //    and there are no timers that are refed.
   int64_t expiry_ms =
-      ret.ToLocalChecked()->IntegerValue(env->context()).FromJust();
+      ret.ToLocalChecked()->IntegerValue(context()).FromJust();
 
-  uv_handle_t* h = reinterpret_cast<uv_handle_t*>(handle);
+  uv_handle_t* h = reinterpret_cast<uv_handle_t*>(timer_handle());
 
   if (expiry_ms != 0) {
-    int64_t duration_ms =
-        llabs(expiry_ms) - (uv_now(env->event_loop()) - env->timer_base());
+    int64_t duration_ms = llabs(expiry_ms) - (uv_now(event_loop()) - timer_base());
 
-    env->ScheduleTimer(duration_ms > 0 ? duration_ms : 1);
+    ScheduleTimer(duration_ms > 0 ? duration_ms : 1);
 
     if (expiry_ms > 0)
       uv_ref(h);
@@ -1447,8 +1443,14 @@ void Environment::RunTimers(uv_timer_t* handle) {
   } else {
     uv_unref(h);
   }
+
+  set_should_run_timers(false);
 }
 
+void Environment::EnqueueTimers(uv_timer_t* handle) {
+  Environment* env = Environment::from_timer_handle(handle);
+  env->set_should_run_timers(true);
+}
 
 void Environment::CheckImmediate(uv_check_t* handle) {
   Environment* env = Environment::from_immediate_check_handle(handle);

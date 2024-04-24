@@ -1048,6 +1048,9 @@
         # Avoid excessive LTO
         ['enable_lto=="true"', {
           'ldflags': [ '-fno-lto' ],
+          'xcode_settings': {
+            'LLVM_LTO': 'NO',
+          },
         }],
       ],
     }, # fuzz_env
@@ -1128,6 +1131,9 @@
         # Avoid excessive LTO
         ['enable_lto=="true"', {
           'ldflags': [ '-fno-lto' ],
+          'xcode_settings': {
+            'LLVM_LTO': 'NO',
+          },
         }],
       ],
     }, # cctest
@@ -1185,6 +1191,9 @@
         # Avoid excessive LTO
         ['enable_lto=="true"', {
           'ldflags': [ '-fno-lto' ],
+          'xcode_settings': {
+            'LLVM_LTO': 'NO',
+          },
         }],
       ],
     }, # embedtest
@@ -1207,6 +1216,9 @@
         # Avoid excessive LTO
         ['enable_lto=="true"', {
           'ldflags': [ '-fno-lto' ],
+          'xcode_settings': {
+            'LLVM_LTO': 'NO',
+          },
         }],
       ]
     }, # overlapped-checker
@@ -1306,6 +1318,9 @@
         # Avoid excessive LTO
         ['enable_lto=="true"', {
           'ldflags': [ '-fno-lto' ],
+          'xcode_settings': {
+            'LLVM_LTO': 'NO',
+          },
         }],
       ],
     }, # node_mksnapshot

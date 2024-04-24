@@ -478,19 +478,11 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
             &EnvironmentOptions::experimental_repl_await,
             kAllowedInEnvvar,
             true);
-  AddOption("--experimental-vm-modules",
-            "experimental ES Module support in vm module",
-            &EnvironmentOptions::experimental_vm_modules,
-            kAllowedInEnvvar);
   AddOption("--experimental-worker", "", NoOp{}, kAllowedInEnvvar);
   AddOption("--experimental-report", "", NoOp{}, kAllowedInEnvvar);
   AddOption(
       "--experimental-wasi-unstable-preview1", "", NoOp{}, kAllowedInEnvvar);
   AddOption("--expose-internals", "", &EnvironmentOptions::expose_internals);
-  AddOption("--frozen-intrinsics",
-            "experimental frozen intrinsics support",
-            &EnvironmentOptions::frozen_intrinsics,
-            kAllowedInEnvvar);
   AddOption("--heapsnapshot-signal",
             "Generate heap snapshot on specified signal",
             &EnvironmentOptions::heap_snapshot_signal,
