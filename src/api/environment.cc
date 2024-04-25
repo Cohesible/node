@@ -553,13 +553,14 @@ MaybeLocal<Value> LoadEnvironment(Environment* env,
   auto result = StartExecution(env, cb);
   if (env->can_call_into_js()) {
       TickInfo* tick_info = env->tick_info();
+      if (!tick_info->has_tick_scheduled()) {
+        env->context()->GetMicrotaskQueue()->PerformCheckpoint(env->isolate());
+      }
 
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
         HandleScope handle_scope(env->isolate());
         Local<Function> tick_callback = env->tick_callback_function();
         USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
-      } else {
-        env->context()->GetMicrotaskQueue()->PerformCheckpoint(env->isolate());
       }
   }
 

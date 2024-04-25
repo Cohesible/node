@@ -36,7 +36,7 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     env->performance_state()->Mark(
         node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_START);
     do {
-      more = uv_run(env->event_loop(), UV_RUN_NOWAIT) > 0;
+      more = uv_run(env->event_loop(), UV_RUN_ONCE) > 0;
       if (env->is_stopping()) break;
 
       if (env->should_run_timers()) {
@@ -44,12 +44,15 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
       }
 
       TickInfo* tick_info = env->tick_info();
+
+      if (!tick_info->has_tick_scheduled()) {
+        env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+      }
+
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
         HandleScope handle_scope(isolate);
         Local<Function> tick_callback = env->tick_callback_function();
         USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
-      } else {
-        env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
       }
 
       if (more && !env->is_stopping()) continue;
@@ -132,20 +135,41 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
     bool more;
 
     do {
-      uv_run(env->event_loop(), UV_RUN_NOWAIT);
+      uv_run(env->event_loop(), UV_RUN_ONCE);
       if (env->is_stopping()) break;
 
       if (env->should_run_timers()) {
         env->RunTimers();
       }
 
-      context->GetMicrotaskQueue()->PerformCheckpoint(isolate);
-
       if (promise->State() != v8::Promise::PromiseState::kPending) {
         if (promise->State() == v8::Promise::PromiseState::kRejected) {
           return isolate->ThrowException(promise->Result());
         }
         return promise->Result();
+      }
+  
+      TickInfo* tick_info = env->tick_info();
+      if (!tick_info->has_tick_scheduled()) {
+        env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+        if (promise->State() != v8::Promise::PromiseState::kPending) {
+          if (promise->State() == v8::Promise::PromiseState::kRejected) {
+            return isolate->ThrowException(promise->Result());
+          }
+          return promise->Result();
+        }
+      }
+
+      if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
+        HandleScope handle_scope(isolate);
+        Local<Function> tick_callback = env->tick_callback_function();
+        USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
+        if (promise->State() != v8::Promise::PromiseState::kPending) {
+          if (promise->State() == v8::Promise::PromiseState::kRejected) {
+            return isolate->ThrowException(promise->Result());
+          }
+          return promise->Result();
+        }
       }
 
       more = uv_loop_alive(env->event_loop());
