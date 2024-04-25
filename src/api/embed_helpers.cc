@@ -44,7 +44,6 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
       }
 
       TickInfo* tick_info = env->tick_info();
-
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
         HandleScope handle_scope(isolate);
         Local<Function> tick_callback = env->tick_callback_function();
@@ -56,8 +55,12 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
       if (more && !env->is_stopping()) continue;
 
       more = uv_loop_alive(env->event_loop());
-      if (more && !env->is_stopping()) continue;
+      if ((more || tick_info->has_tick_scheduled()) && !env->is_stopping()) continue;
       platform->DrainTasks(isolate);
+      env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+
+      more = uv_loop_alive(env->event_loop());
+      if (more && !env->is_stopping()) continue;
 
       if (EmitProcessBeforeExit(env).IsNothing())
         break;

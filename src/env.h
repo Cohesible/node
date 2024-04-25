@@ -440,7 +440,6 @@ class TickInfo : public MemoryRetainer {
  public:
   inline AliasedUint8Array& fields();
   inline bool has_tick_scheduled() const;
-  inline bool has_immediate_tick_scheduled() const;
   inline bool has_rejection_to_warn() const;
 
   SET_MEMORY_INFO_NAME(TickInfo)
