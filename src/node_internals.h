@@ -252,7 +252,6 @@ class InternalCallbackScope {
   async_context async_context_;
   v8::Local<v8::Object> object_;
   bool skip_hooks_;
-  bool skip_task_queues_;
   bool failed_ = false;
   bool pushed_ids_ = false;
   bool closed_ = false;

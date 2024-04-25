@@ -27,7 +27,6 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
   Isolate* isolate = env->isolate();
   HandleScope handle_scope(isolate);
   Context::Scope context_scope(env->context());
-  // SealHandleScope seal(isolate);
 
   if (env->is_stopping()) return Nothing<ExitCode>();
 
@@ -49,12 +48,12 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
         HandleScope handle_scope(isolate);
         Local<Function> tick_callback = env->tick_callback_function();
-        tick_callback->Call(env->context(), env->process_object(), 0, nullptr);
+        USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
       } else {
         env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
       }
 
-      if (more) continue;
+      if (more && !env->is_stopping()) continue;
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
@@ -77,6 +76,14 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
     env->performance_state()->Mark(
         node::performance::NODE_PERFORMANCE_MILESTONE_LOOP_EXIT);
   }
+
+  TickInfo* tick_info = env->tick_info();
+  if (tick_info->has_rejection_to_warn()) {
+      HandleScope handle_scope(isolate);
+      Local<Function> tick_callback = env->tick_callback_function();
+      USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
+  }
+
   if (env->is_stopping()) return Nothing<ExitCode>();
 
   env->set_trace_sync_io(false);

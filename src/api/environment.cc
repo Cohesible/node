@@ -557,7 +557,7 @@ MaybeLocal<Value> LoadEnvironment(Environment* env,
       if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
         HandleScope handle_scope(env->isolate());
         Local<Function> tick_callback = env->tick_callback_function();
-        tick_callback->Call(env->context(), env->process_object(), 0, nullptr);
+        USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
       } else {
         env->context()->GetMicrotaskQueue()->PerformCheckpoint(env->isolate());
       }

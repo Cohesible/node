@@ -51,8 +51,7 @@ InternalCallbackScope::InternalCallbackScope(Environment* env,
   : env_(env),
     async_context_(asyncContext),
     object_(object),
-    skip_hooks_(flags & kSkipAsyncHooks),
-    skip_task_queues_(flags & kSkipTaskQueues) {
+    skip_hooks_(flags & kSkipAsyncHooks) {
   CHECK_NOT_NULL(env);
   env->PushAsyncCallbackScope();
 
