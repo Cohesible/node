@@ -174,8 +174,17 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
-
       platform->DrainTasks(isolate);
+      env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+      if (promise->State() != v8::Promise::PromiseState::kPending) {
+        if (promise->State() == v8::Promise::PromiseState::kRejected) {
+          return isolate->ThrowException(promise->Result());
+        }
+        return promise->Result();
+      }
+
+      more = uv_loop_alive(env->event_loop());
+      if (more && !env->is_stopping()) continue;
 
       if (EmitProcessBeforeExit(env).IsNothing())
         break;
