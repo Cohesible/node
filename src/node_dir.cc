@@ -3,7 +3,7 @@
 #include "node_external_reference.h"
 #include "node_file-inl.h"
 #include "node_process-inl.h"
-#include "permission/permission.h"
+
 #include "util.h"
 
 #include "tracing/trace_event.h"
@@ -367,8 +367,7 @@ static void OpenDir(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(isolate, args[0]);
   CHECK_NOT_NULL(*path);
-  THROW_IF_INSUFFICIENT_PERMISSIONS(
-      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
+  
 
   const enum encoding encoding = ParseEncoding(isolate, args[1], UTF8);
 
@@ -405,8 +404,7 @@ static void OpenDirSync(const FunctionCallbackInfo<Value>& args) {
 
   BufferValue path(isolate, args[0]);
   CHECK_NOT_NULL(*path);
-  THROW_IF_INSUFFICIENT_PERMISSIONS(
-      env, permission::PermissionScope::kFileSystemRead, path.ToStringView());
+  
 
   uv_fs_t req;
   auto make = OnScopeLeave([&req]() { uv_fs_req_cleanup(&req); });

@@ -119,15 +119,6 @@ class EnvironmentOptions : public Options {
   bool experimental_import_meta_resolve = false;
   std::string input_type;  // Value of --input-type
   std::string type;        // Value of --experimental-default-type
-  std::string experimental_policy;
-  std::string experimental_policy_integrity;
-  bool has_policy_integrity_string = false;
-  bool experimental_permission = false;
-  std::vector<std::string> allow_fs_read;
-  std::vector<std::string> allow_fs_write;
-  bool allow_addons = false;
-  bool allow_child_process = false;
-  bool allow_worker_threads = false;
   bool experimental_repl_await = true;
   bool expose_internals = false;
   bool force_node_api_uncaught_exceptions_policy = false;

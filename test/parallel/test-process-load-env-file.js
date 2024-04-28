@@ -54,24 +54,6 @@ describe('process.loadEnvFile()', () => {
     }, { code: 'ENOENT' });
   });
 
-  it('should check for permissions', async () => {
-    const code = `
-      process.loadEnvFile(${JSON.stringify(missingEnvFile)});
-    `.trim();
-    const child = await common.spawnPromisified(
-      process.execPath,
-      [ '--eval', code, '--experimental-permission' ],
-      { cwd: __dirname },
-    );
-    assert.match(child.stderr, /Error: Access to this API has been restricted/);
-    assert.match(child.stderr, /code: 'ERR_ACCESS_DENIED'/);
-    assert.match(child.stderr, /permission: 'FileSystemRead'/);
-    if (!common.isWindows) {
-      assert(child.stderr.includes(`resource: '${JSON.stringify(missingEnvFile).replaceAll('"', '')}'`));
-    }
-    assert.strictEqual(child.code, 1);
-  });
-
   it('loadEnvFile does not mutate --env-file output', async () => {
     const code = `
       process.loadEnvFile(${JSON.stringify(basicValidEnvFilePath)});

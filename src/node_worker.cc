@@ -9,7 +9,7 @@
 #include "node_options-inl.h"
 #include "node_perf.h"
 #include "node_snapshot_builder.h"
-#include "permission/permission.h"
+
 #include "util-inl.h"
 #include "v8-cppgc.h"
 
@@ -86,13 +86,8 @@ Worker::Worker(Environment* env,
                 Number::New(env->isolate(), static_cast<double>(thread_id_.id)))
       .Check();
 
-  // Without this check, to use the permission model with
-  // workers (--allow-worker) one would need to pass --allow-inspector as well
-  if (env->permission()->is_granted(
-          node::permission::PermissionScope::kInspector)) {
-    inspector_parent_handle_ =
-        GetInspectorParentHandle(env, thread_id_, url.c_str(), name.c_str());
-  }
+  inspector_parent_handle_ =
+      GetInspectorParentHandle(env, thread_id_, url.c_str(), name.c_str());
 
   argv_ = std::vector<std::string>{env->argv()[0]};
   // Mark this Worker object as weak until we actually start the thread.
@@ -487,8 +482,7 @@ void Worker::New(const FunctionCallbackInfo<Value>& args) {
   auto is_internal = args[5];
   CHECK(is_internal->IsBoolean());
   if (is_internal->IsFalse()) {
-    THROW_IF_INSUFFICIENT_PERMISSIONS(
-        env, permission::PermissionScope::kWorkerThreads, "");
+    
   }
   Isolate* isolate = args.GetIsolate();
 

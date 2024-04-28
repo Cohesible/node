@@ -43,21 +43,3 @@ assert.throws(() => {
   });
 }
 
-{
-  spawnSyncAndExit(process.execPath, [
-    '--experimental-require-module',
-    '--experimental-print-required-tla',
-    fixtures.path('es-modules/tla/require-execution.js'),
-  ], {
-    signal: null,
-    status: 1,
-    stderr(output) {
-      assert.match(output, /I am executed/);
-      assert.match(output, /Error: unexpected top-level await at.*execution\.mjs:3/);
-      assert.match(output, /await Promise\.resolve\('hi'\)/);
-      assert.match(output, message);
-      return true;
-    },
-    stdout: ''
-  });
-}

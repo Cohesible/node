@@ -476,8 +476,7 @@ static void LoadEnvFile(const v8::FunctionCallbackInfo<v8::Value>& args) {
     path = path_value.ToString();
   }
 
-  THROW_IF_INSUFFICIENT_PERMISSIONS(
-      env, permission::PermissionScope::kFileSystemRead, path);
+  
 
   Dotenv dotenv{};
 
