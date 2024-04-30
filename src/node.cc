@@ -547,7 +547,6 @@ static_assert(
     std::is_same_v<std::underlying_type_t<ProcessInitializationFlags::Flags>,
                    uint32_t>);
 
-// 2-3ms
 static void PlatformInit(ProcessInitializationFlags::Flags flags) {
   // init_process_flags is accessed in ResetStdio(),
   // which can be called from signal handlers.
@@ -863,9 +862,6 @@ int ProcessGlobalArgs(std::vector<std::string>* args,
 
 static std::atomic_bool init_called{false};
 
-static Mutex g_crypto_mutex;
-static bool crypto_init = false;
-
 // TODO(addaleax): Turn this into a wrapper around InitializeOncePerProcess()
 // (with the corresponding additional flags set), then eventually remove this.
 static ExitCode InitializeNodeWithArgsInternal(
@@ -880,9 +876,7 @@ static ExitCode InitializeNodeWithArgsInternal(
   per_process::node_start_time = uv_hrtime();
 
   // Register built-in bindings
-  binding::RegisterBuiltinBindings(); // negligible impact on startup time
-  // printf("register builtins -> %f\n", (uv_hrtime() - per_process::node_start_time) / 1e6);
-
+  binding::RegisterBuiltinBindings();
 
   // Make inherited handles noninheritable.
   if (!(flags & ProcessInitializationFlags::kEnableStdioInheritance) &&
@@ -914,7 +908,7 @@ static ExitCode InitializeNodeWithArgsInternal(
 
   // Specify this explicitly to avoid being affected by V8 changes to the
   // default value.
-  // V8::SetFlagsFromString("--rehash-snapshot");
+  V8::SetFlagsFromString("--rehash-snapshot");
 
   HandleEnvOptions(per_process::cli_options->per_isolate->per_env);
 
@@ -1046,8 +1040,6 @@ auto result = std::make_unique<InitializationResultImpl>();
 result->args_ = args;
 
 #if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
-    g_crypto_mutex.Lock();
-
     auto GetOpenSSLErrorString = []() -> std::string {
       std::string ret;
       ERR_print_errors_cb(
@@ -1138,8 +1130,6 @@ result->args_ = args;
 
     // Ensure CSPRNG is properly seeded.
     CHECK(crypto::CSPRNG(nullptr, 0).is_ok());
-
-    g_crypto_mutex.Unlock();
 
     {
       std::string extra_ca_certs;
@@ -1328,10 +1318,10 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
   }
   std::vector<std::thread*> threads;
 
-    threads.emplace_back(new std::thread(PlatformInit, flags));    
+  threads.emplace_back(new std::thread(PlatformInit, flags));    
 
   if (!(flags & ProcessInitializationFlags::kNoInitOpenSSL)) {
-    std::thread* task = new std::thread(InitCrypto, args, flags);
+    auto task = new std::thread(InitCrypto, args, flags);
     threads.emplace_back(task);    
 
     // auto result = InitCrypto(args, flags);
@@ -1341,9 +1331,15 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     // }
   }
 
+  auto cleanup = OnScopeLeave([&]() { 
+    for (auto task : threads) {
+      task->join();
+      delete task;
+    }
+  });
+
   // This needs to run *before* V8::Initialize().
   {
-    // ~0.5ms or so
     result->exit_code_ = InitializeNodeWithArgsInternal(
         &result->args_, &result->exec_args_, &result->errors_, flags);
     if (result->exit_code_enum() != ExitCode::kNoFailure) {
@@ -1351,7 +1347,6 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
       return result;
     }
   }
-   // printf("InitializeNodeWithArgsInternal -> %f\n", (uv_hrtime() - _t) / 1e6);
 
 #if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
      V8::SetEntropySource([](unsigned char* buffer, size_t length) {
@@ -1359,14 +1354,7 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
       // and /dev/urandom isn't available. That wouldn't be so bad if
       // the entropy was only used for Math.random() but it's also used for
       // hash table and address space layout randomization. Better to abort.
-      if (!crypto_init) {
-        g_crypto_mutex.Lock();
-        CHECK(crypto::CSPRNG(buffer, length).is_ok());
-        crypto_init = true;
-        g_crypto_mutex.Unlock();
-      } else {
-        CHECK(crypto::CSPRNG(buffer, length).is_ok());
-      }
+      CHECK(crypto::CSPRNG(buffer, length).is_ok());
 
       return true;
     });
@@ -1466,11 +1454,6 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
                                   result->exec_args());
 
     result->instance_ = (void*)instance;
-  }
-
-  for (auto task : threads) {
-    task->join();
-    delete task;
   }
 
   return result;

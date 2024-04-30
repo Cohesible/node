@@ -1,4 +1,4 @@
-// Flags: --expose-gc --experimental-vm-modules
+// Flags: --expose-gc 
 
 'use strict';
 

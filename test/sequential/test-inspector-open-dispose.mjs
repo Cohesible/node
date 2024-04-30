@@ -4,6 +4,8 @@ import net from 'node:net';
 import url from 'node:url';
 import { fork } from 'node:child_process';
 
+throw new Error(`FIXME`)
+
 common.skipIfInspectorDisabled();
 if (process.env.BE_CHILD) {
   await beChild();

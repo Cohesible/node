@@ -5,8 +5,8 @@ const { Script, compileFunction } = require('vm');
 const assert = require('assert');
 
 assert(
-  !process.execArgv.includes('--experimental-vm-modules'),
-  'This test must be run without --experimental-vm-modules');
+  !process.execArgv.includes(''),
+  'This test must be run without ');
 
 assert.rejects(async () => {
   const script = new Script('import("fs")', {

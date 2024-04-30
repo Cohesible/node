@@ -6,6 +6,7 @@ import { writeFileSync, readFileSync } from 'node:fs';
 import { setTimeout } from 'node:timers/promises';
 import { NodeInstance } from '../common/inspector-helper.js';
 
+throw new Error('FIXME')
 
 if (common.isIBMi)
   common.skip('IBMi does not support `fs.watch()`');

@@ -1,4 +1,4 @@
-// Flags: --experimental-vm-modules
+// Flags: 
 'use strict';
 
 // https://github.com/nodejs/node/issues/3020

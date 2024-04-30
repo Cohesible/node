@@ -1,6 +1,6 @@
 'use strict';
 
-// Flags: --experimental-vm-modules --harmony-import-attributes
+// Flags:  --harmony-import-attributes
 
 const common = require('../common');
 

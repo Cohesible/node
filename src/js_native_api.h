@@ -330,11 +330,11 @@ NAPI_EXTERN napi_status NAPI_CDECL napi_get_array_length(napi_env env,
                                                          napi_value value,
                                                          uint32_t* result);
 
-enum napi_iteration_cb_result {
-    kException,
+typedef enum {
+    kException = 0,
     kBreak,
     kContinue,
-};
+} napi_iteration_cb_result;
 
 typedef napi_iteration_cb_result (*napi_iteration_cb)(uint32_t index,
                                             napi_value element,

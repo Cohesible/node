@@ -26,6 +26,7 @@ const env = {
     cwd: tmpdir.path,
     env,
   });
+  console.log(child.stderr.toString())
   assert.strictEqual(child.status, 9);
 }
 

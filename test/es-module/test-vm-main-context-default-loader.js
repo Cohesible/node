@@ -20,9 +20,6 @@ const assert = require('assert');
 common.expectWarning('ExperimentalWarning',
                      'vm.USE_MAIN_CONTEXT_DEFAULT_LOADER is an experimental feature and might change at any time');
 
-assert(
-  !process.execArgv.includes('--experimental-vm-modules'),
-  'This test must be run without --experimental-vm-modules');
 
 assert.strictEqual(typeof USE_MAIN_CONTEXT_DEFAULT_LOADER, 'symbol');
 

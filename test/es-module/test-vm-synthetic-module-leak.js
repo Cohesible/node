@@ -1,4 +1,4 @@
-// Flags: --experimental-vm-modules --max-old-space-size=16
+// Flags:  --max-old-space-size=16
 'use strict';
 
 // This tests that vm.SyntheticModule does not leak.

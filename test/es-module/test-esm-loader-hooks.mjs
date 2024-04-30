@@ -4,6 +4,8 @@ import assert from 'node:assert';
 import { execPath } from 'node:process';
 import { describe, it } from 'node:test';
 
+throw new Error('FIXME')
+
 describe('Loader hooks', { concurrency: !process.env.TEST_PARALLEL }, () => {
   it('are called with all expected arguments', async () => {
     const { code, signal, stdout, stderr } = await spawnPromisified(execPath, [
