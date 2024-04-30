@@ -31,7 +31,7 @@ env:
 permissions:
   contents: read
 jobs:
-  build-lto:
+  build-linux:
     runs-on: ubuntu-latest
     # not working on gcc-8 and gcc-9 see https://github.com/nodejs/node/issues/38570
     container: gcc:11
