@@ -55,5 +55,5 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: node-binary
+          name: node-binary-windows
           path: out/Release/node.exe
