@@ -434,7 +434,7 @@ class NODE_EXTERN MultiIsolatePlatform : public v8::Platform {
   // posted during flushing of the queue are postponed until the next
   // flushing.
   virtual bool FlushForegroundTasks(v8::Isolate* isolate) = 0;
-  virtual void DrainTasks(v8::Isolate* isolate) = 0;
+  virtual bool DrainTasks(v8::Isolate* isolate) = 0;
 
   // This needs to be called between the calls to `Isolate::Allocate()` and
   // `Isolate::Initialize()`, so that initialization can already start

@@ -142,7 +142,7 @@ class NodePlatform : public MultiIsolatePlatform {
                v8::PageAllocator* page_allocator = nullptr);
   ~NodePlatform() override;
 
-  void DrainTasks(v8::Isolate* isolate) override;
+  bool DrainTasks(v8::Isolate* isolate) override;
   void Shutdown();
 
   // v8::Platform implementation.

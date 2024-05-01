@@ -17,7 +17,7 @@ function replaceStackTrace(str) {
 
 function replaceForceColorsStackTrace(str) {
   // eslint-disable-next-line no-control-regex
-  return str.replaceAll(/(\[90m\W+)at .*node:.*/g, '$1at *[39m');
+  return str.replaceAll(/(\[90m\W+)at .*node-synapse:.*/g, '$1at *[39m');
 }
 
 describe('errors output', { concurrency: !process.env.TEST_PARALLEL }, () => {

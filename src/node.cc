@@ -1296,8 +1296,6 @@ bool LoadSnapshotData(const SnapshotData** snapshot_data_ptr) {
       // If we fail to read the embedded snapshot, treat it as if Node.js
       // was built without one.
       *snapshot_data_ptr = read_data;
-
-      // printf("snapshot init -> %f\n", (uv_hrtime() - _t) / 1e6);
     }
   }
 
@@ -1417,8 +1415,6 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     cppgc::InitializeProcess(allocator);
   }
 
-  //printf("cppgc init -> %f\n", (uv_hrtime() - _t) / 1e6);
-
   performance::performance_v8_start = PERFORMANCE_NOW();
   per_process::v8_initialized = true;
 
@@ -1440,13 +1436,12 @@ InitializeOncePerProcessInternal(const std::vector<std::string>& args,
     return result;
   }
 
-
   if (!LoadSnapshotData(&snapshot_data)) {
     result->exit_code_ = ExitCode::kStartupSnapshotFailure;
     return result;
   }
 
-  if (per_process::cli_options->experimental_sea_config.empty()) {
+  if (per_process::cli_options->experimental_sea_config.empty() && !per_process::cli_options->per_isolate->build_snapshot) {
     auto instance = new NodeMainInstance(snapshot_data,
                                   uv_default_loop(),
                                   per_process::v8_platform.Platform(),
@@ -1516,18 +1511,10 @@ static ExitCode StartInternal(int argc, char** argv) {
   }
 
   DCHECK_EQ(result->exit_code_enum(), ExitCode::kNoFailure);
-  const SnapshotData* snapshot_data = nullptr;
 
-  auto cleanup_process = OnScopeLeave([&]() {
-    TearDownOncePerProcess();
+  auto cleanup_process = OnScopeLeave([&]() { TearDownOncePerProcess(); });
 
-    // if (snapshot_data != nullptr &&
-    //     snapshot_data->data_ownership == SnapshotData::DataOwnership::kOwned) {
-    //   delete snapshot_data;
-    // }
-  });
-
-  uv_loop_configure(uv_default_loop(), UV_METRICS_IDLE_TIME);
+  // uv_loop_configure(uv_default_loop(), UV_METRICS_IDLE_TIME);
   std::string sea_config = per_process::cli_options->experimental_sea_config;
   if (!sea_config.empty()) {
 #if !defined(DISABLE_SINGLE_EXECUTABLE_APPLICATION)
@@ -1537,18 +1524,6 @@ static ExitCode StartInternal(int argc, char** argv) {
     fprintf(stderr, "Single executable application is disabled.\n");
     return ExitCode::kGenericUserError;
 #endif  // !defined(DISABLE_SINGLE_EXECUTABLE_APPLICATION)
-  }
-  // --build-snapshot indicates that we are in snapshot building mode.
-  if (per_process::cli_options->per_isolate->build_snapshot) {
-    if (per_process::cli_options->per_isolate->build_snapshot_config.empty() &&
-        result->args().size() < 2) {
-      fprintf(stderr,
-              "--build-snapshot must be used with an entry point script.\n"
-              "Usage: node --build-snapshot /path/to/entry.js\n");
-      return ExitCode::kInvalidCommandLineArgument;
-    }
-
-    return GenerateAndWriteSnapshotData(&snapshot_data, result.get());
   }
 
   if (result->instance() == nullptr) {

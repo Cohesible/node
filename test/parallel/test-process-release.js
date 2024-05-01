@@ -5,7 +5,7 @@ require('../common');
 const assert = require('assert');
 const versionParts = process.versions.node.split('.');
 
-assert.strictEqual(process.release.name, 'node');
+assert.strictEqual(process.release.name, 'node-synapse');
 
 // It's expected that future LTS release lines will have additional
 // branches in here

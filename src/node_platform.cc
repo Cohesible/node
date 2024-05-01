@@ -452,14 +452,18 @@ void PerIsolatePlatformData::RunForegroundTask(uv_timer_t* handle) {
   delayed->platform_data->DeleteFromScheduledTasks(delayed);
 }
 
-void NodePlatform::DrainTasks(Isolate* isolate) {
+bool NodePlatform::DrainTasks(Isolate* isolate) {
   std::shared_ptr<PerIsolatePlatformData> per_isolate = ForNodeIsolate(isolate);
-  if (!per_isolate) return;
+  if (!per_isolate) return false;
 
+  int count = 0;
   do {
+    count++;
     // Worker tasks aren't associated with an Isolate.
     worker_thread_task_runner_->BlockingDrain();
   } while (per_isolate->FlushForegroundTasksInternal());
+
+  return count > 1;
 }
 
 bool PerIsolatePlatformData::FlushForegroundTasksInternal() {
@@ -646,6 +650,7 @@ template <class T>
 std::queue<std::unique_ptr<T>> TaskQueue<T>::PopAll() {
   Mutex::ScopedLock scoped_lock(lock_);
   std::queue<std::unique_ptr<T>> result;
+  outstanding_tasks_ = 0;
   result.swap(task_queue_);
   return result;
 }

@@ -59,10 +59,19 @@ Maybe<ExitCode> SpinEventLoopInternal(Environment* env) {
 
       more = uv_loop_alive(env->event_loop());
       if ((more || tick_info->has_tick_scheduled()) && !env->is_stopping()) continue;
-      platform->DrainTasks(isolate);
-      env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
 
-      more = uv_loop_alive(env->event_loop());
+      if (platform->DrainTasks(isolate)) {
+        more = true;
+      }
+
+      // env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+      // if (tick_info->has_tick_scheduled() || tick_info->has_rejection_to_warn()) {
+      //   HandleScope handle_scope(isolate);
+      //   Local<Function> tick_callback = env->tick_callback_function();
+      //   USE(tick_callback->Call(env->context(), env->process_object(), 0, nullptr));
+      // }
+
+      more = more || uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
 
       if (EmitProcessBeforeExit(env).IsNothing())
@@ -174,16 +183,21 @@ v8::Local<v8::Value> WaitForPromise(v8::Local<v8::Context> context, v8::Local<v8
 
       more = uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
-      platform->DrainTasks(isolate);
-      env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
-      if (promise->State() != v8::Promise::PromiseState::kPending) {
-        if (promise->State() == v8::Promise::PromiseState::kRejected) {
-          return isolate->ThrowException(promise->Result());
+
+      if (platform->DrainTasks(isolate)) {
+        if (promise->State() != v8::Promise::PromiseState::kPending) {
+          if (promise->State() == v8::Promise::PromiseState::kRejected) {
+            return isolate->ThrowException(promise->Result());
+          }
+          return promise->Result();
         }
-        return promise->Result();
+
+        more = true;
       }
 
-      more = uv_loop_alive(env->event_loop());
+      // env->context()->GetMicrotaskQueue()->PerformCheckpoint(isolate);
+
+      more = more || uv_loop_alive(env->event_loop());
       if (more && !env->is_stopping()) continue;
 
       if (EmitProcessBeforeExit(env).IsNothing())

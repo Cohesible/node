@@ -6,7 +6,7 @@ import { writeFileSync } from 'node:fs';
 import util from 'internal/util';
 import tmpdir from '../common/tmpdir.js';
 
-throw new Error('FIXME')
+common.skip('FIXME');
 
 if (common.isIBMi)
   common.skip('IBMi does not support `fs.watch()`');

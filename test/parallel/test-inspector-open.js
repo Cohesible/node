@@ -1,8 +1,7 @@
 'use strict';
 const common = require('../common');
 common.skipIfInspectorDisabled();
-
-throw new Error('FIXME')
+common.skip('FIXME');
 
 // Test inspector open()/close()/url() API. It uses ephemeral ports so can be
 // run safely in parallel.

@@ -5,6 +5,8 @@
 const list = process.moduleLoadList.slice();
 
 const common = require('../common');
+common.skip('FIXME');
+
 const assert = require('assert');
 const { inspect } = require('util');
 

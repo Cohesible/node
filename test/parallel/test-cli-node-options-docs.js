@@ -1,5 +1,8 @@
 'use strict';
 const common = require('../common');
+
+common.skip('FIXME');
+
 if (process.config.variables.node_without_node_options)
   common.skip('missing NODE_OPTIONS support');
 

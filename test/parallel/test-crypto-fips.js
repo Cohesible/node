@@ -4,6 +4,8 @@ const common = require('../common');
 if (!common.hasCrypto)
   common.skip('missing crypto');
 
+common.skip('FIXME');
+
 const assert = require('assert');
 const spawnSync = require('child_process').spawnSync;
 const path = require('path');

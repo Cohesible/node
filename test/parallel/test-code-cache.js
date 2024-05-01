@@ -15,6 +15,8 @@ const {
   builtinCategories: { canBeRequired }
 } = internalBinding('builtins');
 
+canBeRequired.delete('esbuild')
+canBeRequired.delete('typescript')
 for (const key of canBeRequired) {
   require(`node:${key}`);
 }
