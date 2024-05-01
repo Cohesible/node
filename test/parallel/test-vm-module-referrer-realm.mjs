@@ -1,4 +1,3 @@
-// Flags: --experimental-vm-modules
 import * as common from '../common/index.mjs';
 import assert from 'node:assert';
 import { Script, SourceTextModule, createContext } from 'node:vm';
