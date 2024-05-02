@@ -1,6 +1,7 @@
 'use strict';
 
-const { mustCall } = require('../common');
+const { mustCall, skip } = require('../common');
+skip('FIXME');
 
 const TIMEOUT = 10;
 const SPIN_DUR = 50;

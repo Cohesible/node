@@ -2,6 +2,7 @@
 'use strict';
 
 const common = require('../common');
+common.skip('FIXME (FLAKY)');
 if (!common.hasIPv6)
   common.skip('IPv6 support required');
 

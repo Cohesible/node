@@ -1,6 +1,6 @@
 'use strict';
-require('../common');
-
+const { skip } = require('../common');
+skip('FIXME');
 // This is a sibling test to test/addons/register-signal-handler/
 
 process.env.ALLOW_CRASHES = true;

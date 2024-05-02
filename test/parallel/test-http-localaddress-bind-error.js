@@ -46,7 +46,7 @@ server.listen(0, '127.0.0.1', common.mustCall(function() {
   }, function(res) {
     assert.fail('unexpectedly got response from server');
   }).on('error', common.mustCall(function(e) {
-    console.log(`client got error: ${e.message}`);
+    console.log('client error', e)
     server.close();
   })).end();
 }));

@@ -76,7 +76,8 @@ server.on('stream', (stream) => {
     client.destroy();
   }));
   stream.resume();
-  stream.respond();
+  // FIXME: stream is already destroyed by the time we get it
+  stream.respond(); 
   stream.end('ok');
 });
 
