@@ -1250,6 +1250,11 @@ void Environment::RunAndClearInterrupts() {
 void Environment::RunAndClearNativeImmediates(bool only_refed) {
   TRACE_EVENT0(TRACING_CATEGORY_NODE1(environment),
                "RunAndClearNativeImmediates");
+
+  if (native_immediates_.size() == 0 && native_immediates_interrupts_.size() == 0 && native_immediates_threadsafe_.size() == 0) {
+    return;
+  }
+  
   HandleScope handle_scope(isolate_);
   // In case the Isolate is no longer accessible just use an empty Local. This
   // is not an issue for InternalCallbackScope as this case is already handled
@@ -1423,14 +1428,13 @@ void Environment::EnqueueTimers(uv_timer_t* handle) {
 void Environment::CheckImmediate(uv_check_t* handle) {
   Environment* env = Environment::from_immediate_check_handle(handle);
   TRACE_EVENT0(TRACING_CATEGORY_NODE1(environment), "CheckImmediate");
-
-  HandleScope scope(env->isolate());
-  Context::Scope context_scope(env->context());
-
   env->RunAndClearNativeImmediates();
 
   if (env->immediate_info()->count() == 0 || !env->can_call_into_js())
     return;
+
+  HandleScope scope(env->isolate());
+  Context::Scope context_scope(env->context());
 
   do {
     MakeCallback(env->isolate(),
