@@ -35,10 +35,18 @@ jobs:
     runs-on: self-hosted
     # not working on gcc-8 and gcc-9 see https://github.com/nodejs/node/issues/38570 
     container: gcc:11
+    env:
+      CC: sccache gcc
+      CXX: sccache g++
+      SCCACHE_GHA_ENABLED: 'true'
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4.1.1
         with:
           persist-credentials: false
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@2e7f9ec7921547d4b46598398ca573513895d0bd  # v0.0.4
+        with:
+          version: v0.8.0
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
         with:
@@ -51,7 +59,8 @@ jobs:
           ./configure --without-npm --without-corepack --ninja
           ninja -C out/Release
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v3
         with:
           name: node-linux-x64
           path: out/Release/node
+          if-no-files-found: error
