@@ -59,7 +59,7 @@ jobs:
           ./configure --without-npm --without-corepack --ninja
           ninja -C out/Release
       - name: Upload binary
-      - uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v3
         with:
           name: node-linux-x64
           path: out/Release/node
