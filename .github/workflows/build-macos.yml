@@ -1,0 +1,70 @@
+name: Build macOS
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - .mailmap
+      - '**.md'
+      - AUTHORS
+      - doc/**
+      - .github/**
+      - '!.github/workflows/build-macos.yml'
+  push:
+    branches:
+      - main
+      - canary
+      - v[0-9]+.x-staging
+      - v[0-9]+.x
+    paths-ignore:
+      - .mailmap
+      - '**.md'
+      - AUTHORS
+      - doc/**
+      - .github/**
+      - '!.github/workflows/build-macos.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  FLAKY_TESTS: keep_retrying
+
+permissions:
+  contents: read
+
+jobs:
+  build-macOS:
+    if: github.event.pull_request.draft == false
+    runs-on: macos-13
+    env:
+      CC: sccache gcc
+      CXX: sccache g++
+      SCCACHE_GHA_ENABLED: 'true'
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b  # v4.1.4
+        with:
+          persist-credentials: false
+      - name: Set up sccache
+        uses: mozilla-actions/sccache-action@2e7f9ec7921547d4b46598398ca573513895d0bd  # v0.0.4
+        with:
+          version: v0.8.0
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # v5.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: brew update && brew install ninja
+      - name: Environment Information
+        run: npx envinfo
+      - name: Configure
+        run: ./configure --without-npm --without-corepack --ninja
+      - name: Build
+        run: make -j$(getconf _NPROCESSORS_ONLN)
+      - name: Upload binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: node-darwin-x64
+          path: out/Release/node
+          if-no-files-found: error
