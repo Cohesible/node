@@ -146,6 +146,8 @@ tools/*/*.i.tmp
 # Ignore dependencies fetched by tools/v8/fetch_deps.py
 /deps/.cipd
 
+/deps/mimalloc
+
 # === Rules for Windows vcbuild.bat ===
 /temp-vcbuild
 

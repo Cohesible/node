@@ -56,7 +56,7 @@ jobs:
       - name: Build
         run: |
           apt-get update && apt-get install ninja-build python-is-python3 -y 
-          ./configure --without-npm --without-corepack --ninja
+          ./configure --without-npm --without-corepack --ninja --enable-mimalloc
           ninja -C out/Release
       - name: Upload binary
         uses: actions/upload-artifact@v3

@@ -547,6 +547,22 @@
       'msvs_disabled_warnings!': [4244],
 
       'conditions': [
+        [ 'enable_mimalloc=="true"', {
+            'xcode_settings': {
+              'OTHER_LDFLAGS': [
+                '-Wl,-force_load,../../deps/mimalloc/out/release/<(STATIC_LIB_PREFIX)mimalloc<(STATIC_LIB_SUFFIX)',
+              ],
+            },
+            'conditions': [
+              ['OS != "aix" and OS != "os400" and OS != "mac" and OS != "ios"', {
+                'ldflags': [
+                  '-Wl,--whole-archive',
+                  '../../deps/mimalloc/out/release/<(STATIC_LIB_PREFIX)mimalloc<(STATIC_LIB_SUFFIX)',
+                  '-Wl,--no-whole-archive',
+                ],
+              }]
+            ],
+        }],
         [ 'error_on_warn=="true"', {
           'cflags': ['-Werror'],
           'xcode_settings': {

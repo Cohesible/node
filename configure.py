@@ -201,6 +201,12 @@ parser.add_argument("--enable-lto",
     help="Enable compiling with lto of a binary. This feature is only available "
          "with gcc 5.4.1+ or clang 3.9.1+.")
 
+parser.add_argument("--enable-mimalloc",
+    action="store_true",
+    dest="enable_mimalloc",
+    default=None,
+    help="Enables mimalloc for allocation.")
+
 parser.add_argument("--link-module",
     action="append",
     dest="linked_module",
@@ -1379,6 +1385,11 @@ def configure_node(o):
         f'or clang {clang_version_checked_str}+ only.')
 
   o['variables']['enable_lto'] = b(options.enable_lto)
+
+  if options.enable_mimalloc:
+    subprocess.run(tools_path / 'build-mimalloc.sh', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+  o['variables']['enable_mimalloc'] = b(options.enable_mimalloc)
 
   if options.node_use_large_pages or options.node_use_large_pages_script_lld:
     warn('''The `--use-largepages` and `--use-largepages-script-lld` options
