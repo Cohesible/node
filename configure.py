@@ -1387,7 +1387,7 @@ def configure_node(o):
   o['variables']['enable_lto'] = b(options.enable_lto)
 
   if options.enable_mimalloc:
-    subprocess.run(tools_path / 'build-mimalloc.sh', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    subprocess.run(tools_path / 'build-mimalloc.sh', check=True)
 
   o['variables']['enable_mimalloc'] = b(options.enable_mimalloc)
 
