@@ -53,7 +53,7 @@ jobs:
       - name: Build
         run: ./vcbuild.bat build-synapse-release
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: node-binary-windows
+          name: node-windows-x64
           path: out/Release/node.exe
