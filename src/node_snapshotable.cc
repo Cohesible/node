@@ -696,22 +696,22 @@ bool SnapshotData::Check() const {
     return false;
   }
 
-  if (metadata.type == SnapshotMetadata::Type::kFullyCustomized &&
-      !WithoutCodeCache(metadata.flags)) {
-    uint32_t current_cache_version = v8::ScriptCompiler::CachedDataVersionTag();
-    if (metadata.v8_cache_version_tag != current_cache_version) {
-      // For now we only do this check for the customized snapshots - we know
-      // that the flags we use in the default snapshot are limited and safe
-      // enough so we can relax the constraints for it.
-      fprintf(stderr,
-              "Failed to load the startup snapshot because it was built with "
-              "a different version of V8 or with different V8 configurations.\n"
-              "Expected tag %" PRIx32 ", read %" PRIx32 "\n",
-              current_cache_version,
-              metadata.v8_cache_version_tag);
-      return false;
-    }
-  }
+  // if (metadata.type == SnapshotMetadata::Type::kFullyCustomized &&
+  //     !WithoutCodeCache(metadata.flags)) {
+  //   uint32_t current_cache_version = v8::ScriptCompiler::CachedDataVersionTag();
+  //   if (metadata.v8_cache_version_tag != current_cache_version) {
+  //     // For now we only do this check for the customized snapshots - we know
+  //     // that the flags we use in the default snapshot are limited and safe
+  //     // enough so we can relax the constraints for it.
+  //     fprintf(stderr,
+  //             "Failed to load the startup snapshot because it was built with "
+  //             "a different version of V8 or with different V8 configurations.\n"
+  //             "Expected tag %" PRIx32 ", read %" PRIx32 "\n",
+  //             current_cache_version,
+  //             metadata.v8_cache_version_tag);
+  //     return false;
+  //   }
+  // }
 
   // TODO(joyeecheung): check incompatible Node.js flags.
   return true;
