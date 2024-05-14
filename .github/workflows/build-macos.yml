@@ -68,6 +68,8 @@ jobs:
         run: ./configure --without-npm --without-corepack --ninja --enable-mimalloc
       - name: Build
         run: make -j$(getconf _NPROCESSORS_ONLN)
+      - name: Quick test
+        run: ./out/Release/node -e 'console.log("test")'
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
