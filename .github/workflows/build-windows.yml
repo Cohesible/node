@@ -57,8 +57,12 @@ jobs:
         with:
           name: node-windows-x64
           path: out/Release/node.exe
+          if-no-files-found: error
+      - name: Create lib
+        run: ./change-lib.bat
       - name: Upload lib
         uses: actions/upload-artifact@v3
         with:
           name: node-lib-windows-x64
-          path: out/Release/node.lib
+          path: synapse.lib
+          if-no-files-found: error
