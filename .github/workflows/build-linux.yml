@@ -56,7 +56,7 @@ jobs:
       - name: Build
         run: |
           apt-get update && apt-get install ninja-build python-is-python3 cmake -y 
-          ./configure --without-npm --without-corepack --ninja --enable-mimalloc
+          ./configure --without-npm --without-corepack --ninja --enable-mimalloc --enable-lto
           ninja -C out/Release
       - name: Quick test
         run: ./out/Release/node -e 'console.log("test")'
