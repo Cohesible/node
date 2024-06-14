@@ -1,4 +1,4 @@
-# Node.js ([Synapse](https://github.com/Cohesible/synapse) fork)
+# Node.js (Used in [Synapse](https://github.com/Cohesible/synapse))
 
 This fork contains several major changes:
 * Modified event loop
