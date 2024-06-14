@@ -39,12 +39,12 @@ jobs:
   build-macOS:
     if: github.event.pull_request.draft == false
     strategy:
-      matrix:
-        config: [
-          { os: macos-13, arch: x64 },
-          { os: macos-14, arch: aarch64 },
-        ]
-    runs-on: ${{ matrix.config.os }}
+      include:
+        - os: macos-13-large
+          arch: x64
+        - os: macos-13-xlarge
+          arch: aarch64
+    runs-on: ${{ matrix.os }}
     env:
       CC: sccache gcc
       CXX: sccache g++
@@ -73,7 +73,7 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
-          name: node-darwin-${{ matrix.config.arch }}
+          name: node-darwin-${{ matrix.arch }}
           path: out/Release/node
           if-no-files-found: error
 
