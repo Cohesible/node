@@ -1,4 +1,29 @@
-# Node.js
+# Node.js ([Synapse](https://github.com/Cohesible/synapse) fork)
+
+This fork contains several major changes:
+* Modified event loop
+  * Enables synchronously waiting for Promises in a robust way
+  * Better task scheduling with v8
+* "Primordials" are removed
+  * Improves startup time
+  * Modest improvements for several microbenchmarks (needs more testing)
+* Aggresive symbol stripping
+  * Improves startup time
+  * **This breaks node addons that use symbols from v8**
+* Optionally build with `mimalloc`
+  * Seems to be a toss-up for performance.
+
+Around 95% of the tests, excluding addon tests, pass. The remaining failures are from subtle differences in the event loop. Some of these differences could break user code, though so far many of the failures are from tests relying on precise (and undocumented) behavior.
+
+### Why a fork?
+
+Synapse is primarily a ***build*** tool whereas Node.js is primarily a runtime. While Node.js has been offering more and more "build-time" functionality, it's difficult to make broad changes given Node's widespread usage. 
+
+Forking Node.js enables us to make much more aggressive changes in the pursuit of better performance and reducing complexity. In other words, **this fork is not 100% compatible with Node.js nor is the goal 100% compatibility.** Breaking changes may be favored if the benefits are substantial.
+
+With that being said, compatibility with Node.js inferfaces is still extremely important for Synapse because it enables a smooth developer experience. 
+
+## Original README
 
 Node.js is an open-source, cross-platform JavaScript runtime environment.
 
