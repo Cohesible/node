@@ -65,7 +65,7 @@ jobs:
       - name: Environment Information
         run: npx envinfo
       - name: Configure
-        run: ./configure --without-npm --without-corepack --ninja --enable-mimalloc
+        run: ./configure --without-npm --without-corepack --ninja --enable-mimalloc --enable-lto
       - name: Build
         run: make -j$(getconf _NPROCESSORS_ONLN)
       - name: Quick test
@@ -76,3 +76,10 @@ jobs:
           name: node-darwin-${{ matrix.config.arch }}
           path: out/Release/node
           if-no-files-found: error
+
+# TODO: add these tests
+# output = shell_output("#{bin}/node -e 'console.log(new Intl.NumberFormat(\"en-EN\").format(1234.56))'").strip
+# assert_equal "1,234.56", output
+
+# output = shell_output("#{bin}/node -e 'console.log(new Intl.NumberFormat(\"de-DE\").format(1234.56))'").strip
+# assert_equal "1.234,56", output
