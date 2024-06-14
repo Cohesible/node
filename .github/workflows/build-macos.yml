@@ -39,11 +39,12 @@ jobs:
   build-macOS:
     if: github.event.pull_request.draft == false
     strategy:
-      include:
-        - os: macos-13-large
-          arch: x64
-        - os: macos-13-xlarge
-          arch: aarch64
+      matrix:
+        include:
+          - os: macos-13-large
+            arch: x64
+          - os: macos-13-xlarge
+            arch: aarch64
     runs-on: ${{ matrix.os }}
     env:
       CC: sccache gcc
