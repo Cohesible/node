@@ -40,15 +40,20 @@ jobs:
     if: github.event.pull_request.draft == false
     strategy:
       matrix:
-        config: [
-          { os: macos-13, arch: x64 },
-          { os: macos-14, arch: aarch64 },
-        ]
-    runs-on: ${{ matrix.config.os }}
+        include:
+          - os: macos-13
+            arch: x64
+            brew-dir: /usr/local/opt
+          - os: macos-14
+            arch: aarch64
+            brew-dir: /opt/homebrew/opt
+    runs-on: ${{ matrix.os }}
     env:
-      CC: sccache gcc
-      CXX: sccache g++
+      CC: sccache ${{ matrix.brew-dir }}/llvm@18/bin/clang
+      CXX: sccache ${{ matrix.brew-dir }}/llvm@18/bin/clang++
+      LIBTOOL: ${{ matrix.brew-dir }}/llvm@18/bin/llvm-libtool-darwin
       SCCACHE_GHA_ENABLED: 'true'
+      LDFLAGS: '-Wl,-ld_classic'
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b  # v4.1.4
         with:
@@ -56,16 +61,17 @@ jobs:
       - name: Set up sccache
         uses: mozilla-actions/sccache-action@2e7f9ec7921547d4b46598398ca573513895d0bd  # v0.0.4
         with:
-          version: v0.8.0
+          version: v0.8.1
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d  # v5.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: brew update && brew install ninja && brew install cmake
+      - run: brew install llvm@18
       - name: Environment Information
         run: npx envinfo
       - name: Configure
-        run: ./configure --without-npm --without-corepack --ninja --enable-mimalloc
+        run: ./configure --without-npm --without-corepack --ninja --enable-mimalloc --enable-lto
       - name: Build
         run: make -j$(getconf _NPROCESSORS_ONLN)
       - name: Quick test
@@ -73,6 +79,13 @@ jobs:
       - name: Upload binary
         uses: actions/upload-artifact@v3
         with:
-          name: node-darwin-${{ matrix.config.arch }}
+          name: node-darwin-${{ matrix.arch }}
           path: out/Release/node
           if-no-files-found: error
+
+# TODO: add these tests
+# output = shell_output("#{bin}/node -e 'console.log(new Intl.NumberFormat(\"en-EN\").format(1234.56))'").strip
+# assert_equal "1,234.56", output
+
+# output = shell_output("#{bin}/node -e 'console.log(new Intl.NumberFormat(\"de-DE\").format(1234.56))'").strip
+# assert_equal "1.234,56", output
