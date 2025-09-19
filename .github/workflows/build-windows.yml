@@ -53,7 +53,7 @@ jobs:
       - name: Build
         run: ./vcbuild.bat build-synapse-release
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: node-windows-x64
           path: out/Release/node.exe
@@ -61,7 +61,7 @@ jobs:
       - name: Create lib
         run: ./change-lib.bat
       - name: Upload lib
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: node-lib-windows-x64
           path: synapse.lib
