@@ -44,9 +44,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up sccache
-        uses: mozilla-actions/sccache-action@2e7f9ec7921547d4b46598398ca573513895d0bd  # v0.0.4
-        with:
-          version: v0.8.0
+        uses: mozilla-actions/sccache-action@v0.0.9
       - name: Use Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8  # v4.0.2
         with:
@@ -61,7 +59,7 @@ jobs:
       - name: Quick test
         run: ./out/Release/node -e 'console.log("test")'
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: node-linux-x64
           path: out/Release/node
