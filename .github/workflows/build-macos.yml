@@ -77,7 +77,7 @@ jobs:
       - name: Quick test
         run: ./out/Release/node -e 'console.log("test")'
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: node-darwin-${{ matrix.arch }}
           path: out/Release/node
